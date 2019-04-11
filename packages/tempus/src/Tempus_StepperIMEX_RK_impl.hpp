@@ -91,7 +91,7 @@ StepperIMEX_RK<Scalar>::StepperIMEX_RK(
 template<class Scalar>
 void StepperIMEX_RK<Scalar>::setTableaus(
   Teuchos::RCP<Teuchos::ParameterList> pList,
-  std::string stepperType)
+  std::string stepperType, const bool callInitialize)
 {
   if (stepperType == "") {
     if (pList == Teuchos::null)
@@ -115,7 +115,7 @@ void StepperIMEX_RK<Scalar>::setTableaus(
       tableauPL->set<int>("order", 1);
       pl->set("Tableau", *tableauPL);
 
-      this->setExplicitTableau("General ERK", pl);
+      this->setExplicitTableau("General ERK", pl, callInitialize);
     }
     {
       // Implicit Tableau
@@ -132,7 +132,7 @@ void StepperIMEX_RK<Scalar>::setTableaus(
       tableauPL->set<int>("order", 1);
       pl->set("Tableau", *tableauPL);
 
-      this->setImplicitTableau("General DIRK", pl);
+      this->setImplicitTableau("General DIRK", pl, callInitialize);
     }
     description_ = stepperType;
     order_ = 1;
@@ -140,7 +140,8 @@ void StepperIMEX_RK<Scalar>::setTableaus(
   } else if (stepperType == "IMEX RK SSP2") {
     typedef Teuchos::ScalarTraits<Scalar> ST;
     // Explicit Tableau
-    this->setExplicitTableau("RK Explicit Trapezoidal", Teuchos::null);
+    this->setExplicitTableau("RK Explicit Trapezoidal", Teuchos::null,
+                             callInitialize);
 
     // Implicit Tableau
     Teuchos::RCP<Teuchos::ParameterList> pl = Teuchos::parameterList();
@@ -149,7 +150,7 @@ void StepperIMEX_RK<Scalar>::setTableaus(
     const Scalar one = ST::one();
     Scalar gamma = one - one/ST::squareroot(2*one);
     pl->set<double>("gamma",gamma);
-    this->setImplicitTableau("SDIRK 2 Stage 3rd order", pl);
+    this->setImplicitTableau("SDIRK 2 Stage 3rd order", pl, callInitialize);
 
     description_ = stepperType;
     order_ = 2;
@@ -178,7 +179,7 @@ void StepperIMEX_RK<Scalar>::setTableaus(
       tableauPL->set<int>("order", 2);
       pl->set("Tableau", *tableauPL);
 
-      this->setExplicitTableau("General ERK", pl);
+      this->setExplicitTableau("General ERK", pl, callInitialize);
     }
     {
       // Implicit Tableau
@@ -196,7 +197,7 @@ void StepperIMEX_RK<Scalar>::setTableaus(
       tableauPL->set<int>("order", 3);
       pl->set("Tableau", *tableauPL);
 
-      this->setImplicitTableau("General DIRK", pl);
+      this->setImplicitTableau("General DIRK", pl, callInitialize);
     }
     description_ = stepperType;
     order_ = 3;
@@ -209,8 +210,8 @@ void StepperIMEX_RK<Scalar>::setTableaus(
       new Teuchos::ParameterList(pList->sublist("IMEX-RK Implicit Stepper")));
 
     // TODO: should probably check the order of the tableau match
-    this->setExplicitTableau("General ERK",  explicitPL);
-    this->setImplicitTableau("General DIRK", implicitPL);
+    this->setExplicitTableau("General ERK",  explicitPL, callInitialize);
+    this->setImplicitTableau("General DIRK", implicitPL, callInitialize);
     description_ = stepperType;
     order_ = pList->get<int>("overall order", 0);
 
@@ -245,47 +246,56 @@ void StepperIMEX_RK<Scalar>::setTableaus(
 template<class Scalar>
 void StepperIMEX_RK<Scalar>::setExplicitTableau(
   std::string stepperType,
-  Teuchos::RCP<Teuchos::ParameterList> pList)
+  Teuchos::RCP<Teuchos::ParameterList> pList,
+  const bool callInitialize)
 {
   Teuchos::RCP<const RKButcherTableau<Scalar> > explicitTableau =
     createRKBT<Scalar>(stepperType,pList);
-  this->setExplicitTableau(explicitTableau);
+  this->setExplicitTableau(explicitTableau, callInitialize);
 }
 
 
 template<class Scalar>
 void StepperIMEX_RK<Scalar>::setExplicitTableau(
-  Teuchos::RCP<const RKButcherTableau<Scalar> > explicitTableau)
+  Teuchos::RCP<const RKButcherTableau<Scalar> > explicitTableau,
+  const bool callInitialize)
 {
   TEUCHOS_TEST_FOR_EXCEPTION(explicitTableau->isImplicit() == true,
     std::logic_error,
     "Error - Received an implicit Tableau for setExplicitTableau()!\n" <<
     "        Tableau = " << explicitTableau->description() << "\n");
   explicitTableau_ = explicitTableau;
+
+  if (callInitialize) this->initialize();
 }
 
 
 template<class Scalar>
 void StepperIMEX_RK<Scalar>::setImplicitTableau(
   std::string stepperType,
-  Teuchos::RCP<Teuchos::ParameterList> pList)
+  Teuchos::RCP<Teuchos::ParameterList> pList,
+  const bool callInitialize)
 {
   Teuchos::RCP<const RKButcherTableau<Scalar> > implicitTableau =
     createRKBT<Scalar>(stepperType,pList);
-  this->setImplicitTableau(implicitTableau);
+  this->setImplicitTableau(implicitTableau, callInitialize);
 }
 
 
 template<class Scalar>
 void StepperIMEX_RK<Scalar>::setImplicitTableau(
-  Teuchos::RCP<const RKButcherTableau<Scalar> > implicitTableau)
+  Teuchos::RCP<const RKButcherTableau<Scalar> > implicitTableau,
+  const bool callInitialize)
 {
   TEUCHOS_TEST_FOR_EXCEPTION( implicitTableau->isDIRK() != true,
     std::logic_error,
     "Error - Did not receive a DIRK Tableau for setImplicitTableau()!\n" <<
     "        Tableau = " << implicitTableau->description() << "\n");
   implicitTableau_ = implicitTableau;
+
+  if (callInitialize) this->initialize();
 }
+
 
 template<class Scalar>
 void StepperIMEX_RK<Scalar>::setModel(

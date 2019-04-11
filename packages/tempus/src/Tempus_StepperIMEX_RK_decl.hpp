@@ -257,23 +257,42 @@ public:
   //@{
     /// Set both the explicit and implicit tableau from ParameterList
     virtual void setTableaus(Teuchos::RCP<Teuchos::ParameterList> pList,
-                             std::string stepperType = "");
+                             std::string stepperType = "",
+                             const bool callInitialize = false);
 
-    /// Set the explicit tableau from ParameterList
+    /** \brief Set the explicit tableau from ParameterList.
+     *
+     *  If callInitialize = true, the stepper initialize() will be called.
+     *  callInitialize = false allows the application to set many objects
+     *  and then call initialize() explicitly once.
+     */
     virtual void setExplicitTableau(std::string stepperType,
-                                    Teuchos::RCP<Teuchos::ParameterList> pList);
+                                    Teuchos::RCP<Teuchos::ParameterList> pList,
+                                    const bool callInitialize = false);
 
-    /// Set the explicit tableau from tableau
+    /** \brief Set the explicit tableau from tableau.
+     *
+     *  See setExplicitTableau(stepperType,pList) for details on callInitialize.
+     */
     virtual void setExplicitTableau(
-      Teuchos::RCP<const RKButcherTableau<Scalar> > explicitTableau);
+      Teuchos::RCP<const RKButcherTableau<Scalar> > explicitTableau,
+      const bool callInitialize = false);
 
-    /// Set the implicit tableau from ParameterList
+    /** \brief Set the implicit tableau from ParameterList.
+     *
+     *  See setExplicitTableau(stepperType,pList) for details on callInitialize.
+     */
     virtual void setImplicitTableau(std::string stepperType,
-                                    Teuchos::RCP<Teuchos::ParameterList> pList);
+                                    Teuchos::RCP<Teuchos::ParameterList> pList,
+                                    const bool callInitialize = false);
 
-    /// Set the implicit tableau from tableau
+    /** \brief Set the implicit tableau from tableau.
+     *
+     *  See setExplicitTableau(stepperType,pList) for details on callInitialize.
+     */
     virtual void setImplicitTableau(
-      Teuchos::RCP<const RKButcherTableau<Scalar> > implicitTableau);
+      Teuchos::RCP<const RKButcherTableau<Scalar> > implicitTableau,
+      const bool callInitialize = false);
 
     virtual void setModel(
       const Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> >& appModel);

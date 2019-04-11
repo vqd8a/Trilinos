@@ -14,6 +14,16 @@ namespace Tempus {
 
 
 template<class Scalar>
+void Stepper<Scalar>::setModel(
+  const Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> >& appModel,
+  const bool callInitialize)
+{
+  this->setModel(appModel);
+  if (callInitialize) this->initialize();
+}
+
+
+template<class Scalar>
 void Stepper<Scalar>::getValidParametersBasic(
   Teuchos::RCP<Teuchos::ParameterList> pl) const
 {
@@ -70,6 +80,15 @@ void Stepper<Scalar>::getValidParametersBasic(
     "In general for explicit and implicit steppers, the default is true,\n"
     "because it is fairly cheap with just one residual evaluation.\n"
     "Individual steppers may override this default.\n");
+}
+
+template<class Scalar>
+void Stepper<Scalar>::setParameterList(
+      const Teuchos::RCP<Teuchos::ParameterList> & pl,
+      const bool callInitialize)
+{
+  this->setParameterList(pl);
+  if (callInitialize) this->initialize();
 }
 
 

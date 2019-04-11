@@ -117,13 +117,37 @@ public:
     virtual void setObserver(
       Teuchos::RCP<StepperObserver<Scalar> > obs = Teuchos::null);
 
-    virtual void setTableau(std::string stepperType);
+    /** \brief Set tableau from ParameterList or with default values.
+     *
+     *  If the ParameterList is set, the tableau will be taken from it.
+     *  Otherwise the default tableau will be used.  If callInitialize = true,
+     *  the stepper initialize() will be called.  callInitialize = false
+     *  allows the application to set many objects and then call
+     *  initialize() explicitly once.
+     */
+    virtual void setTableau(const bool callInitialize = false);
 
-    virtual void setTableau(
-      Teuchos::RCP<Teuchos::ParameterList> pList = Teuchos::null);
+    /** \brief Set tableau from ParameterList.
+     *
+     *  See setTableau() for details on callInitialize.
+     */
+    virtual void setTableau(Teuchos::RCP<Teuchos::ParameterList> pList,
+                            const bool callInitialize = false);
 
+    /** \brief Set tableau from stepperType.
+     *
+     *  See setTableau() for details on callInitialize.
+     */
+    virtual void setTableau(std::string stepperType,
+                            const bool callInitialize = false);
+
+    /** \brief Set tableau from application's tableau.
+     *
+     *  See setTableau() for details on callInitialize.
+     */
     virtual void setTableau(
-      Teuchos::RCP<const RKButcherTableau<Scalar> > DIRK_ButcherTableau);
+      Teuchos::RCP<const RKButcherTableau<Scalar> > DIRK_ButcherTableau,
+      const bool callInitialize = false);
 
     /// Initialize during construction and after changing input parameters.
     virtual void initialize();

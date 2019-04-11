@@ -160,20 +160,15 @@ Scalar StepperExplicitRK<Scalar>::getInitTimeStep(
 }
 
 template<class Scalar>
-void StepperExplicitRK<Scalar>::setTableau(std::string stepperType)
+void StepperExplicitRK<Scalar>::setTableau(const bool callInitialize)
 {
-  if (stepperType == "") {
-    this->setTableau();
-  } else {
-    Teuchos::RCP<const RKButcherTableau<Scalar> > ERK_ButcherTableau =
-      createRKBT<Scalar>(stepperType, this->stepperPL_);
-    this->setTableau(ERK_ButcherTableau);
-  }
+  Teuchos::RCP<Teuchos::ParameterList> pList = Teuchos::null;
+  this->setTableau(pList, callInitialize);
 }
 
 template<class Scalar>
 void StepperExplicitRK<Scalar>::setTableau(
-  Teuchos::RCP<Teuchos::ParameterList> pList)
+  Teuchos::RCP<Teuchos::ParameterList> pList, const bool callInitialize)
 {
   if (pList == Teuchos::null) {
     // Create default parameters if null, otherwise keep current parameters.
@@ -188,12 +183,26 @@ void StepperExplicitRK<Scalar>::setTableau(
                                                 "RK Explicit 4 Stage");
   Teuchos::RCP<const RKButcherTableau<Scalar> > ERK_ButcherTableau =
     createRKBT<Scalar>(stepperType, this->stepperPL_);
-  this->setTableau(ERK_ButcherTableau);
+  this->setTableau(ERK_ButcherTableau, callInitialize);
+}
+
+template<class Scalar>
+void StepperExplicitRK<Scalar>::setTableau(std::string stepperType,
+  const bool callInitialize)
+{
+  if (stepperType == "") {
+    this->setTableau(callInitialize);
+  } else {
+    Teuchos::RCP<const RKButcherTableau<Scalar> > ERK_ButcherTableau =
+      createRKBT<Scalar>(stepperType, this->stepperPL_);
+    this->setTableau(ERK_ButcherTableau, callInitialize);
+  }
 }
 
 template<class Scalar>
 void StepperExplicitRK<Scalar>::setTableau(
-  Teuchos::RCP<const RKButcherTableau<Scalar> > ERK_ButcherTableau)
+  Teuchos::RCP<const RKButcherTableau<Scalar> > ERK_ButcherTableau,
+  const bool callInitialize)
 {
   ERK_ButcherTableau_ = ERK_ButcherTableau;
 
@@ -202,6 +211,7 @@ void StepperExplicitRK<Scalar>::setTableau(
        "Error - StepperExplicitRK received an implicit Butcher Tableau!\n" <<
        "        Tableau = " << ERK_ButcherTableau_->description() << "\n");
 
+  if (callInitialize) this->initialize();
 }
 
 template<class Scalar>

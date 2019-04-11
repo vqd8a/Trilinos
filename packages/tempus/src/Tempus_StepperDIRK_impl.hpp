@@ -84,20 +84,16 @@ StepperDIRK<Scalar>::StepperDIRK(
 
 
 template<class Scalar>
-void StepperDIRK<Scalar>::setTableau(std::string stepperType)
+void StepperDIRK<Scalar>::setTableau(bool callInitialize)
 {
-  if (stepperType == "") {
-    this->setTableau();
-  } else {
-    Teuchos::RCP<const RKButcherTableau<Scalar> > DIRK_ButcherTableau =
-      createRKBT<Scalar>(stepperType, this->stepperPL_);
-    this->setTableau(DIRK_ButcherTableau);
-  }
+  Teuchos::RCP<Teuchos::ParameterList> pList = Teuchos::null;
+  this->setTableau(pList, callInitialize);
 }
 
 
 template<class Scalar>
-void StepperDIRK<Scalar>::setTableau(Teuchos::RCP<Teuchos::ParameterList> pList)
+void StepperDIRK<Scalar>::setTableau(
+  Teuchos::RCP<Teuchos::ParameterList> pList, bool callInitialize)
 {
   if (pList == Teuchos::null) {
     // Create default parameters if null, otherwise keep current parameters.
@@ -112,13 +108,28 @@ void StepperDIRK<Scalar>::setTableau(Teuchos::RCP<Teuchos::ParameterList> pList)
                                                 "SDIRK 2 Stage 2nd order");
   Teuchos::RCP<const RKButcherTableau<Scalar> > DIRK_ButcherTableau =
     createRKBT<Scalar>(stepperType, this->stepperPL_);
-  this->setTableau(DIRK_ButcherTableau);
+  this->setTableau(DIRK_ButcherTableau, callInitialize);
+}
+
+
+template<class Scalar>
+void StepperDIRK<Scalar>::setTableau(std::string stepperType,
+  bool callInitialize)
+{
+  if (stepperType == "") {
+    this->setTableau(callInitialize);
+  } else {
+    Teuchos::RCP<const RKButcherTableau<Scalar> > DIRK_ButcherTableau =
+      createRKBT<Scalar>(stepperType, this->stepperPL_);
+    this->setTableau(DIRK_ButcherTableau, callInitialize);
+  }
 }
 
 
 template<class Scalar>
 void StepperDIRK<Scalar>::setTableau(
-  Teuchos::RCP<const RKButcherTableau<Scalar> > DIRK_ButcherTableau)
+  Teuchos::RCP<const RKButcherTableau<Scalar> > DIRK_ButcherTableau,
+  bool callInitialize)
 {
   DIRK_ButcherTableau_ = DIRK_ButcherTableau;
 
@@ -126,6 +137,8 @@ void StepperDIRK<Scalar>::setTableau(
     std::logic_error,
        "Error - StepperDIRK do not received a DIRK Butcher Tableau!\n" <<
        "        Tableau = " << DIRK_ButcherTableau_->description() << "\n");
+
+  if (callInitialize) this->initialize();
 }
 
 

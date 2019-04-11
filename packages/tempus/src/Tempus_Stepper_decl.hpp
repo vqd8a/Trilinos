@@ -75,6 +75,15 @@ public:
   //@{
     virtual void setModel(
       const Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> >& appModel) = 0;
+    /** \brief Set the ModelEvaluator.
+     *
+     *  If callInitialize = true, the stepper initialize() will be called.
+     *  callInitialize = false allows the application to set many objects
+     *  and then call initialize() explicitly once.
+     */
+    virtual void setModel(
+      const Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> >& appModel,
+      const bool callInitialize);
     virtual void setNonConstModel(
       const Teuchos::RCP<Thyra::ModelEvaluator<Scalar> >& appModel) = 0;
     virtual Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> > getModel() = 0;
@@ -141,6 +150,17 @@ public:
     virtual bool getICConsistencyCheck() const = 0;
 
     void getValidParametersBasic(Teuchos::RCP<Teuchos::ParameterList> pl) const;
+
+    using Teuchos::ParameterListAcceptor::setParameterList;
+    /** \brief Set ParameterList.
+     *
+     *  If callInitialize = true, the stepper initialize() will be called.
+     *  callInitialize = false allows the application to set many objects
+     *  and then call initialize() explicitly once.
+     */
+    void setParameterList(
+      const Teuchos::RCP<Teuchos::ParameterList> & pl,
+      const bool callInitialize);
   //@}
 
   virtual void modelWarning() const;
