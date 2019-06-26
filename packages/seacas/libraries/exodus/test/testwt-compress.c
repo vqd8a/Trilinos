@@ -333,13 +333,13 @@ int main(int argc, char **argv)
   block_names[5] = "block_6";
   block_names[6] = "block_7";
 
-  ex_copy_string(blocks[0].topology, "quad", 32);
-  ex_copy_string(blocks[1].topology, "quad", 32);
-  ex_copy_string(blocks[2].topology, "hex", 32);
-  ex_copy_string(blocks[3].topology, "tetra", 32);
-  ex_copy_string(blocks[4].topology, "wedge", 32);
-  ex_copy_string(blocks[5].topology, "tetra", 32);
-  ex_copy_string(blocks[6].topology, "tri", 32);
+  ex_copy_string(blocks[0].topology, "quad", MAX_STR_LENGTH + 1);
+  ex_copy_string(blocks[1].topology, "quad", MAX_STR_LENGTH + 1);
+  ex_copy_string(blocks[2].topology, "hex", MAX_STR_LENGTH + 1);
+  ex_copy_string(blocks[3].topology, "tetra", MAX_STR_LENGTH + 1);
+  ex_copy_string(blocks[4].topology, "wedge", MAX_STR_LENGTH + 1);
+  ex_copy_string(blocks[5].topology, "tetra", MAX_STR_LENGTH + 1);
+  ex_copy_string(blocks[6].topology, "tri", MAX_STR_LENGTH + 1);
 
   blocks[0].num_entry = 1;
   blocks[1].num_entry = 1;
@@ -1165,7 +1165,7 @@ int main(int argc, char **argv)
   nset_var_vals  = (float *)calloc(10, CPU_word_size);
 
   for (i = 0; i < num_time_steps; i++) {
-    time_value = (float)(i + 1) / 100.;
+    time_value = (float)(i + 1) / 100.0f;
 
     /* write time value */
 

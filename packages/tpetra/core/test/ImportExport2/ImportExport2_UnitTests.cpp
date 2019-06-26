@@ -94,7 +94,6 @@ namespace {
   using Tpetra::createContigMap;
   using Tpetra::CrsGraph;
   using Tpetra::CrsMatrix;
-  using Tpetra::DynamicProfile;
   using Tpetra::Export;
   using Tpetra::Import;
   using Tpetra::INSERT;
@@ -254,10 +253,10 @@ namespace {
         out << "Creating source and target CrsGraphs" << endl;
       }
       RCP<CrsGraph<LO, GO> > src_graph =
-        rcp (new CrsGraph<LO, GO> (src_map, 1, DynamicProfile,
+        rcp (new CrsGraph<LO, GO> (src_map, 1, StaticProfile,
                                    getCrsGraphParameterList ()));
       RCP<CrsGraph<LO, GO> > tgt_graph =
-        rcp (new CrsGraph<LO, GO> (tgt_map, 1, DynamicProfile,
+        rcp (new CrsGraph<LO, GO> (tgt_map, 1, StaticProfile,
                                    getCrsGraphParameterList ()));
 
       // Create a simple diagonal source graph.
@@ -326,10 +325,10 @@ namespace {
           createContigMap<LO, GO> (INVALID, tgt_num_local, comm);
 
         RCP<CrsGraph<LO, GO> > src_graph =
-          rcp (new CrsGraph<LO, GO> (src_map, 24, DynamicProfile,
+          rcp (new CrsGraph<LO, GO> (src_map, 24, StaticProfile,
                                      getCrsGraphParameterList ()));
         RCP<CrsGraph<LO, GO> > tgt_graph =
-          rcp (new CrsGraph<LO, GO> (tgt_map, 24, DynamicProfile,
+          rcp (new CrsGraph<LO, GO> (tgt_map, 24, StaticProfile,
                                      getCrsGraphParameterList ()));
 
         // This time make src_graph be a full lower-triangular graph.
@@ -601,9 +600,9 @@ namespace {
           createContigMap<LO, GO> (INVALID, tgt_num_local, comm);
 
         RCP<CrsMatrix<Scalar, LO, GO> > src_mat =
-          rcp (new CrsMatrix<Scalar, LO, GO> (src_map, 24, DynamicProfile, crsMatPlist));
+          rcp (new CrsMatrix<Scalar, LO, GO> (src_map, 24, StaticProfile, crsMatPlist));
         RCP<CrsMatrix<Scalar, LO, GO> > tgt_mat =
-          rcp (new CrsMatrix<Scalar, LO, GO> (tgt_map, 24, DynamicProfile, crsMatPlist));
+          rcp (new CrsMatrix<Scalar, LO, GO> (tgt_map, 24, StaticProfile, crsMatPlist));
 
         // This time make src_mat a full lower-triangular matrix.  Each
         // row of column-indices will have length 'globalrow', and
@@ -904,7 +903,7 @@ void build_test_matrix(RCP<const Teuchos::Comm<int> > & Comm, RCP<CrsMatrixType>
   RCP<const map_type> MyMap = rcp(new map_type(NumGlobalEquations, NumMyEquations, 0, Comm));
 
   // Create the matrix
-  A = rcp(new CrsMatrixType(MyMap,0));
+  A = rcp(new CrsMatrixType(MyMap,3));
 
   // Add  rows one-at-a-time
   // Need some vectors to help
@@ -969,7 +968,7 @@ void build_test_matrix_wideband(RCP<const Teuchos::Comm<int> > & Comm, RCP<CrsMa
   RCP<const map_type > MyMap = rcp(new map_type(NumGlobalEquations, NumMyEquations, 0, Comm));
 
   // Create the matrix
-  A = rcp(new CrsMatrixType(MyMap,0));
+  A = rcp(new CrsMatrixType(MyMap,10));
 
   // Add  rows one-at-a-time
   // Need some vectors to help
@@ -1073,7 +1072,7 @@ build_test_matrix_with_row_overlap (const Teuchos::RCP<const Teuchos::Comm<int> 
     rcp (new map_type (INVALID, elementList (), 0, comm));
 
   // Create the output matrix.
-  A = rcp (new CrsMatrixType (MyMap, 0));
+  A = rcp (new CrsMatrixType (MyMap, 1));
 
   // Fill the output matrix with entries.
   Teuchos::Array<Scalar> Values(1);
@@ -1117,7 +1116,7 @@ build_test_prolongator (const Teuchos::RCP<const CrsMatrixType>& A,
   RCP<const map_type> DomainMap;
 
   // Create the matrix
-  P = rcp(new CrsMatrixType(RowMap,0));
+  P = rcp(new CrsMatrixType(RowMap,1));
 
   // Make DomainMap
   Array<GO> gids;

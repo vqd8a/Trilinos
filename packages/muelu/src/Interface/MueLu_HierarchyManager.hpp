@@ -89,6 +89,7 @@ namespace MueLu {
         verbosity_              (Medium),
         doPRrebalance_          (MasterList::getDefault<bool>("repartition: rebalance P and R")),
         implicitTranspose_      (MasterList::getDefault<bool>("transpose: use implicit")),
+        fuseProlongationAndUpdate_ (MasterList::getDefault<bool>("fuse prolongation and update")),
         graphOutputLevel_(-1) { }
 
     //!
@@ -141,7 +142,7 @@ namespace MueLu {
       if (l0->IsAvailable("Nullspace")) {
         RCP<Matrix> A = Teuchos::rcp_dynamic_cast<Matrix>(Op);
         if (A != Teuchos::null) {
-          Teuchos::RCP<MultiVector> nullspace = l0->Get<RCP<MultiVector>>("Nullspace");
+          Teuchos::RCP<MultiVector> nullspace = l0->Get<RCP<MultiVector> >("Nullspace");
           TEUCHOS_TEST_FOR_EXCEPTION(static_cast<size_t>(A->GetFixedBlockSize()) > nullspace->getNumVectors(), Exceptions::RuntimeError, "user-provided nullspace has fewer vectors (" << nullspace->getNumVectors() << ") than number of PDE equations (" << A->GetFixedBlockSize() << ")");
         } else {
           this->GetOStream(Warnings0) << "Skipping dimension check of user-supplied nullspace because user-supplied operator is not a matrix" << std::endl;
@@ -186,6 +187,7 @@ namespace MueLu {
 
       H.SetPRrebalance(doPRrebalance_);
       H.SetImplicitTranspose(implicitTranspose_);
+      H.SetFuseProlongationAndUpdate(fuseProlongationAndUpdate_);
 
       H.Clear();
 
@@ -243,7 +245,6 @@ namespace MueLu {
       }
       // FIXME: Should allow specification of NumVectors on parameterlist
       H.AllocateLevelMultiVectors(1);
-      
       H.describe(H.GetOStream(Runtime0), verbosity_);
 
       // When we reuse hierarchy, it is necessary that we don't
@@ -309,6 +310,7 @@ namespace MueLu {
     MsgType               verbosity_;
     bool                  doPRrebalance_;
     bool                  implicitTranspose_;
+    bool                  fuseProlongationAndUpdate_;
     int                   graphOutputLevel_;
     Teuchos::Array<int>   matricesToPrint_;
     Teuchos::Array<int>   prolongatorsToPrint_;

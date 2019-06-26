@@ -286,7 +286,7 @@ C     here and then refuse to run...
      *      'FATAL ERROR: Mapvar is buggy and cannot correctly'
      *      ' handle interpolating a mesh with nodal variables,',
      *      /,14x,'multiple timesteps and multiple element blocks.',
-     *      /,14x'See https://github.com/gsjaardema/seacas/packages'
+     *      /,14x,'See https://github.com/gsjaardema/seacas/packages'
      *      '/seacas/MAPVAR.md')
         stop('INTERNAL ERROR')
       end if
@@ -299,7 +299,7 @@ C ... Warn if multiple blocks...
      *      ' handle interpolating a mesh with nodal variables',
      *      /,9x,'and multiple element blocks. Shared nodes',
      *      ' might be incorrect.',
-     *      /,9x'See https://github.com/gsjaardema/seacas/packages'
+     *      /,9x,'See https://github.com/gsjaardema/seacas/packages'
      *      '/seacas/MAPVAR.md')
         end if
       end if
@@ -531,10 +531,7 @@ C
 C
 C
       DO 50 IM = 1, IMP
-        IMOFF = IM * 3
-        IDBLKA = IA(NMAP-3+IMOFF)
-        IDBLKB = IA(NMAP-2+IMOFF)
-        ISCHEM = IA(NMAP-1+IMOFF)
+        call getval(ia(nmap), im, idblka, idblkb, ischem)
         TOLSEA = A(NMAPS+IM-1)
 
         do 15 i=1, nblksa
@@ -563,13 +560,13 @@ C
         INSUB  = 1
         ICOMPL = 1
         IF (IM .GT. 1)THEN
-          IDBBM1 = IA(NMAP-5+IMOFF)
+          IDBBM1 = IA(NMAP-5)
           IF (IDBLKB .EQ. IDBBM1)THEN
             INSUB = 2
           END IF
         END IF
         IF (IM .LT. IMP)THEN
-          IDBBP1 = IA(NMAP+1+IMOFF)
+          IDBBP1 = IA(NMAP+1)
           IF (IDBLKB .EQ. IDBBP1)THEN
             ICOMPL = 0
           END IF
@@ -1566,3 +1563,11 @@ C     with a node
 C STRLMT=tolerance for isoparametric coords to lie within an element
 C
       END
+
+      subroutine getval(IMAP, IM, idblka, idblkb, ischem)
+      integer imap(3,*)
+      idblka = imap(1,im)
+      idblkb = imap(2,im)
+      ischem = imap(3,im)
+      return
+      end
