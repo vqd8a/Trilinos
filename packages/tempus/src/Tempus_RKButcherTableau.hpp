@@ -145,8 +145,6 @@ class RKButcherTableau :
           ,std::runtime_error,
           "  Stepper Type != \""+this->description()+"\"\n"
           "  Stepper Type = " + pl->get<std::string>("Stepper Type"));
-        this->setMyParamList(pl);
-        this->rkbtPL_ = pl;
       }
 
       virtual Teuchos::RCP<const Teuchos::ParameterList>
@@ -231,9 +229,6 @@ class RKButcherTableau :
 
     bool isEmbedded_ = false;
     Teuchos::SerialDenseVector<int,Scalar> bstar_;
-
-  protected:
-    Teuchos::RCP<Teuchos::ParameterList> rkbtPL_;
 };
 
 // ----------------------------------------------------------------------------
@@ -393,11 +388,7 @@ class General_RKButcherTableau :
     } else {
       this->initialize(A,b,c,order,this->getDescription());
     }
-
-    this->setMyParamList(pl);
-    this->rkbtPL_ = pl;
   }
-
 };
 
 // ----------------------------------------------------------------------------
@@ -551,8 +542,6 @@ class BackwardEuler_RKBT :
     int order = 1;
 
     this->initialize(A,b,c,order,this->getDescription());
-    this->setMyParamList(pl);
-    this->rkbtPL_ = pl;
   }
 
   Teuchos::RCP<const Teuchos::ParameterList>
@@ -1739,8 +1728,6 @@ class SDIRK1Stage1stOrder_RKBT :
     int order = 1;
 
     this->initialize(A,b,c,order,this->getDescription());
-    this->setMyParamList(pl);
-    this->rkbtPL_ = pl;
   }
 
   Teuchos::RCP<const Teuchos::ParameterList>
@@ -1849,8 +1836,6 @@ class SDIRK2Stage2ndOrder_RKBT :
     if ( std::abs((gamma_-gamma_default_)/gamma_) < 1.0e-08 ) order = 2;
 
     this->initialize(A,b,c,order,1,2,this->getDescription());
-    this->setMyParamList(pl);
-    this->rkbtPL_ = pl;
   }
 
   Teuchos::RCP<const Teuchos::ParameterList>
@@ -1999,8 +1984,6 @@ class SDIRK2Stage3rdOrder_RKBT :
     }
 
     this->initialize(A,b,c,order,2,3,this->getDescription());
-    this->setMyParamList(pl);
-    this->rkbtPL_ = pl;
   }
 
   Teuchos::RCP<const Teuchos::ParameterList>
@@ -2121,8 +2104,6 @@ class EDIRK2Stage3rdOrder_RKBT :
     int order = 3;
 
     this->initialize(A,b,c,order,this->getDescription());
-    this->setMyParamList(pl);
-    this->rkbtPL_ = pl;
   }
 
   Teuchos::RCP<const Teuchos::ParameterList>
@@ -2379,8 +2360,6 @@ class IRK1StageTheta_RKBT :
     if (theta_ == theta_default_) order = 2;
 
     this->initialize(A, b, c, order, 1, 2, this->getDescription());
-    this->setMyParamList(pl);
-    this->rkbtPL_ = pl;
   }
 
   virtual std::string description() const { return "IRK 1 Stage Theta Method"; }
@@ -2480,8 +2459,6 @@ class EDIRK2StageTheta_RKBT :
     if (theta_ == theta_default_) order = 2;
 
     this->initialize(A, b, c, order, 1, 2, this->getDescription());
-    this->setMyParamList(pl);
-    this->rkbtPL_ = pl;
   }
 
   Teuchos::RCP<const Teuchos::ParameterList>
@@ -3575,8 +3552,6 @@ class SDIRK5Stage5thOrder_RKBT :
     int order = 5;
 
     this->initialize(A,b,c,order,this->getDescription());
-    this->setMyParamList(pl);
-    this->rkbtPL_ = pl;
   }
 
   Teuchos::RCP<const Teuchos::ParameterList>
@@ -3704,8 +3679,6 @@ class SDIRK5Stage4thOrder_RKBT :
     int order = 4;
 
     this->initialize(A,b,c,order,this->getDescription());
-    this->setMyParamList(pl);
-    this->rkbtPL_ = pl;
   }
 
   Teuchos::RCP<const Teuchos::ParameterList>
@@ -3804,8 +3777,6 @@ class SDIRK3Stage4thOrder_RKBT :
     int order = 4;
 
     this->initialize(A,b,c,order,this->getDescription());
-    this->setMyParamList(pl);
-    this->rkbtPL_ = pl;
   }
 
   Teuchos::RCP<const Teuchos::ParameterList>
@@ -3910,8 +3881,6 @@ class SDIRK21_RKBT :
     int order = 2;
 
     this->initialize(A,b,c,order,this->getDescription(),true,bstar);
-    this->setMyParamList(pl);
-    this->rkbtPL_ = pl;
   }
 
   Teuchos::RCP<const Teuchos::ParameterList>

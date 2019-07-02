@@ -49,15 +49,30 @@ TEUCHOS_UNIT_TEST(ExplicitRKUnitTest, SETTING_PARAMETERS)
   auto stepper = rcp(new Tempus::StepperExplicitRK<double>());
   auto defaultPL = stepper->getParameterList();
 
-  auto tableau = rcp(new Tempus::ExplicitBogackiShampine32_RKBT<double>());
+  Teuchos::RCP<const Tempus::RKButcherTableau<double>> tableau =
+    rcp(new Tempus::ExplicitBogackiShampine32_RKBT<double>());
 
   stepper->setTableau(tableau);
+  //auto setPL = stepper->getParameterList();
+
+  //std::string stepperType = "Bogacki-Shampine 3(2) Pair";
+  //std::cout << "Unit Test - a" << std::endl;
+  //stepper->setTableau(stepperType);
+  //std::cout << "Unit Test - b" << std::endl;
   auto setPL = stepper->getParameterList();
 
-  stepper->initialize();
+
+  //stepper->initialize();
   auto initializePL = stepper->getParameterList();
 
 
+  bool pass = haveSameValues(*setPL, *defaultPL, true);
+  //if (!pass) {
+    std::cout << std::endl;
+    std::cout << "setPL -------------- \n" << *setPL << std::endl;
+    std::cout << "defaultPL -------------- \n" << *defaultPL << std::endl;
+  //}
+  TEST_ASSERT(pass)
 }
 #endif // SETTING_PARAMETERS
 

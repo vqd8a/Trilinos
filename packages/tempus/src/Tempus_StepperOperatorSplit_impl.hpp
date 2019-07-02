@@ -26,8 +26,8 @@ StepperOperatorSplit<Scalar>::StepperOperatorSplit()
 
   Teuchos::RCP<Teuchos::FancyOStream> out = this->getOStream();
   Teuchos::OSTab ostab(out,1,this->description());
-  *out << "Warning -- Constructing " << this->description()
-       << " without ModelEvaluators!\n"
+  *out << "Warning -- Constructing '" << this->description()
+       << "' without ModelEvaluators!\n"
        << "  - Can reset ParameterList with setParameterList().\n"
        << "  - Requires subsequent addStepper()/createSubSteppers()\n"
        << "    and initialize() calls before calling takeStep().\n"
@@ -46,8 +46,8 @@ StepperOperatorSplit<Scalar>::StepperOperatorSplit(
   if (appModels.empty()) {
     Teuchos::RCP<Teuchos::FancyOStream> out = this->getOStream();
     Teuchos::OSTab ostab(out,1,this->description());
-    *out << "Warning -- Constructing " << this->description()
-         << " without ModelEvaluators!\n"
+    *out << "Warning -- Constructing '" << this->description()
+         << "' without ModelEvaluators!\n"
          << "  - Can reset ParameterList with setParameterList().\n"
          << "  - Requires subsequent addStepper()/createSubSteppers\n"
          << "    and initialize() calls before calling takeStep().\n"
