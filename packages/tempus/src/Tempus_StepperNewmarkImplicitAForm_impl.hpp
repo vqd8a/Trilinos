@@ -128,7 +128,7 @@ void StepperNewmarkImplicitAForm<Scalar>::setModel(
 #ifdef VERBOSE_DEBUG_OUTPUT
   *out_ << "DEBUG: " << __PRETTY_FUNCTION__ << "\n";
 #endif
-  this->validSecondOrderODE_DAE(appModel);
+  validSecondOrderODE_DAE(appModel);
   auto wrapperModel =
     Teuchos::rcp(new WrapperModelEvaluatorSecondOrder<Scalar>(appModel,
                                               "Newmark Implicit a-Form"));
@@ -290,11 +290,11 @@ void StepperNewmarkImplicitAForm<Scalar>::setInitialConditions(
     appInArgs.set_t        (initialState->getTime()    );
 
     this->wrapperModel_->getAppModel()->evalModel(appInArgs, appOutArgs);
- 
+
     Scalar reldiff = Thyra::norm(*f);
-    Scalar normx = Thyra::norm(*x); 
+    Scalar normx = Thyra::norm(*x);
     Scalar eps = Scalar(100.0)*std::abs(Teuchos::ScalarTraits<Scalar>::eps());
-    if (normx > eps*reldiff) reldiff /= normx; 
+    if (normx > eps*reldiff) reldiff /= normx;
 
     if (reldiff > eps) {
       RCP<Teuchos::FancyOStream> out = this->getOStream();
@@ -537,7 +537,7 @@ StepperNewmarkImplicitAForm<Scalar>::getValidParameters() const
   Teuchos::RCP<Teuchos::ParameterList> pl = Teuchos::parameterList();
   pl->setName("Default Stepper - " + this->description());
   pl->set<std::string>("Stepper Type", this->description());
-  this->getValidParametersBasic(pl);
+  getValidParametersBasic(pl);
   pl->set<bool>       ("Use FSAL", true);
   pl->set<std::string>("Initial Condition Consistency", "Consistent");
   pl->set<bool>       ("Zero Initial Guess", false);
@@ -561,7 +561,7 @@ StepperNewmarkImplicitAForm<Scalar>::getDefaultParameters() const
     rcp_const_cast<ParameterList>(this->getValidParameters());
 
   pl->set<std::string>("Solver Name", "Default Solver");
-  RCP<ParameterList> solverPL = this->defaultSolverParameters();
+  RCP<ParameterList> solverPL = defaultSolverParameters();
   pl->set("Default Solver", *solverPL);
 
   return pl;

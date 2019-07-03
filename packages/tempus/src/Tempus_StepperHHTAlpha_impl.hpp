@@ -169,7 +169,7 @@ void StepperHHTAlpha<Scalar>::setModel(
 #ifdef VERBOSE_DEBUG_OUTPUT
   *out_ << "DEBUG: " << __PRETTY_FUNCTION__ << "\n";
 #endif
-  this->validSecondOrderODE_DAE(appModel);
+  validSecondOrderODE_DAE(appModel);
   Teuchos::RCP<WrapperModelEvaluatorSecondOrder<Scalar> > wrapperModel =
     Teuchos::rcp(new WrapperModelEvaluatorSecondOrder<Scalar>(appModel,
                                                       "HHT-Alpha"));
@@ -472,7 +472,7 @@ StepperHHTAlpha<Scalar>::getValidParameters() const
   Teuchos::RCP<Teuchos::ParameterList> pl = Teuchos::parameterList();
   pl->setName("Default Stepper - " + this->description());
   pl->set<std::string>("Stepper Type", this->description());
-  this->getValidParametersBasic(pl);
+  getValidParametersBasic(pl);
   pl->set<bool>       ("Zero Initial Guess", false);
   pl->set<std::string>("Solver Name", "",
     "Name of ParameterList containing the solver specifications.");
@@ -494,7 +494,7 @@ StepperHHTAlpha<Scalar>::getDefaultParameters() const
     rcp_const_cast<ParameterList>(this->getValidParameters());
 
   pl->set<std::string>("Solver Name", "Default Solver");
-  RCP<ParameterList> solverPL = this->defaultSolverParameters();
+  RCP<ParameterList> solverPL = defaultSolverParameters();
   pl->set("Default Solver", *solverPL);
 
   return pl;

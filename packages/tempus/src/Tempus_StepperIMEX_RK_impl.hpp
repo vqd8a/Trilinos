@@ -322,8 +322,8 @@ void StepperIMEX_RK<Scalar>::setModelPair(
   Teuchos::RCP<WrapperModelEvaluatorPairIMEX<Scalar> > wrapperModelPairIMEX =
     Teuchos::rcp_dynamic_cast<WrapperModelEvaluatorPairIMEX<Scalar> >(
       this->wrapperModel_);
-  this->validExplicitODE    (modelPairIMEX->getExplicitModel());
-  this->validImplicitODE_DAE(modelPairIMEX->getImplicitModel());
+  validExplicitODE    (modelPairIMEX->getExplicitModel());
+  validImplicitODE_DAE(modelPairIMEX->getImplicitModel());
   wrapperModelPairIMEX = modelPairIMEX;
   wrapperModelPairIMEX->initialize();
   int expXDim = wrapperModelPairIMEX->getExplicitModel()->get_x_space()->dim();
@@ -347,8 +347,8 @@ void StepperIMEX_RK<Scalar>::setModelPair(
   const Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> >& explicitModel,
   const Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> >& implicitModel)
 {
-  this->validExplicitODE    (explicitModel);
-  this->validImplicitODE_DAE(implicitModel);
+  validExplicitODE    (explicitModel);
+  validImplicitODE_DAE(implicitModel);
   this->wrapperModel_ = Teuchos::rcp(
     new WrapperModelEvaluatorPairIMEX_Basic<Scalar>(
                                               explicitModel, implicitModel));
@@ -704,7 +704,7 @@ StepperIMEX_RK<Scalar>::getValidParameters() const
   Teuchos::RCP<Teuchos::ParameterList> pl = Teuchos::parameterList();
   pl->setName("Default Stepper - IMEX RK SSP2");
   pl->set<std::string>("Stepper Type", "IMEX RK SSP2");
-  this->getValidParametersBasic(pl);
+  getValidParametersBasic(pl);
   pl->set<bool>("Initial Condition Consistency Check", false);
   pl->set<bool>       ("Zero Initial Guess", false);
   pl->set<std::string>("Solver Name", "",
@@ -725,7 +725,7 @@ StepperIMEX_RK<Scalar>::getDefaultParameters() const
     rcp_const_cast<ParameterList>(this->getValidParameters());
 
   pl->set<std::string>("Solver Name", "Default Solver");
-  RCP<ParameterList> solverPL = this->defaultSolverParameters();
+  RCP<ParameterList> solverPL = defaultSolverParameters();
   pl->set("Default Solver", *solverPL);
 
   return pl;

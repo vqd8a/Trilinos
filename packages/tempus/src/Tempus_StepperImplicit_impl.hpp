@@ -26,7 +26,7 @@ template<class Scalar>
 void StepperImplicit<Scalar>::setModel(
   const Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> >& appModel)
 {
-  this->validImplicitODE_DAE(appModel);
+  validImplicitODE_DAE(appModel);
   wrapperModel_ =
     Teuchos::rcp(new WrapperModelEvaluatorBasic<Scalar>(appModel));
 }
@@ -265,7 +265,7 @@ void StepperImplicit<Scalar>::setSolver(
     if ( stepperPL_->isSublist(solverName) )
       solverPL = Teuchos::sublist(stepperPL_, solverName, true);
     else
-      solverPL = this->defaultSolverParameters();
+      solverPL = defaultSolverParameters();
   }
 
   solverName = solverPL->name();

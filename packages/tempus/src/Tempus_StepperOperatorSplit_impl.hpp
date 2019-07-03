@@ -390,7 +390,7 @@ StepperOperatorSplit<Scalar>::getValidParameters() const
   pl->setName("Default Stepper - " + this->description());
   pl->set<std::string>("Stepper Type", "Operator Split",
     "'Stepper Type' must be 'Operator Split'.");
-  this->getValidParametersBasic(pl);
+  getValidParametersBasic(pl);
   pl->set<int>   ("Minimum Order", 1,
     "Minimum Operator-split order.  (default = 1)\n");
   pl->set<int>   ("Order", 1,

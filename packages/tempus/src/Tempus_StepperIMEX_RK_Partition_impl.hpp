@@ -322,8 +322,8 @@ void StepperIMEX_RK_Partition<Scalar>::setModelPair(
     wrapperModelPairIMEX =
     Teuchos::rcp_dynamic_cast<WrapperModelEvaluatorPairPartIMEX_Basic<Scalar> >
       (this->wrapperModel_);
-  this->validExplicitODE    (mePairIMEX->getExplicitModel());
-  this->validImplicitODE_DAE(mePairIMEX->getImplicitModel());
+  validExplicitODE    (mePairIMEX->getExplicitModel());
+  validImplicitODE_DAE(mePairIMEX->getImplicitModel());
   wrapperModelPairIMEX = mePairIMEX;
   wrapperModelPairIMEX->initialize();
 
@@ -340,8 +340,8 @@ void StepperIMEX_RK_Partition<Scalar>::setModelPair(
   const Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> >& explicitModel,
   const Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> >& implicitModel)
 {
-  this->validExplicitODE    (explicitModel);
-  this->validImplicitODE_DAE(implicitModel);
+  validExplicitODE    (explicitModel);
+  validImplicitODE_DAE(implicitModel);
   this->wrapperModel_ = Teuchos::rcp(
     new WrapperModelEvaluatorPairPartIMEX_Basic<Scalar>(
                                              explicitModel, implicitModel));
@@ -746,7 +746,7 @@ StepperIMEX_RK_Partition<Scalar>::getValidParameters() const
   Teuchos::RCP<Teuchos::ParameterList> pl = Teuchos::parameterList();
   pl->setName("Default Stepper - Partitioned IMEX RK SSP2");
   pl->set<std::string>("Stepper Type", "Partitioned IMEX RK SSP2");
-  this->getValidParametersBasic(pl);
+  getValidParametersBasic(pl);
   pl->set<bool>("Initial Condition Consistency Check", false);
   pl->set<bool>       ("Zero Initial Guess", false);
   pl->set<std::string>("Solver Name", "",
@@ -767,7 +767,7 @@ StepperIMEX_RK_Partition<Scalar>::getDefaultParameters() const
     rcp_const_cast<ParameterList>(this->getValidParameters());
 
   pl->set<std::string>("Solver Name", "Default Solver");
-  RCP<ParameterList> solverPL = this->defaultSolverParameters();
+  RCP<ParameterList> solverPL = defaultSolverParameters();
   pl->set("Default Solver", *solverPL);
 
   return pl;

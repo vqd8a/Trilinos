@@ -197,10 +197,10 @@ void StepperNewmarkExplicitAForm<Scalar>::setInitialConditions(
     this->evaluateExplicitODE(f, x, xDot, initialState->getTime());
     Thyra::Vp_StV(f.ptr(), Scalar(-1.0), *(xDotDot));
     Scalar reldiff = Thyra::norm(*f);
-    Scalar normxDotDot = Thyra::norm(*xDotDot); 
-    //The following logic is to prevent FPEs  
+    Scalar normxDotDot = Thyra::norm(*xDotDot);
+    //The following logic is to prevent FPEs
     Scalar eps = Scalar(100.0)*std::abs(Teuchos::ScalarTraits<Scalar>::eps());
-    if (normxDotDot > eps*reldiff) reldiff /= normxDotDot;  
+    if (normxDotDot > eps*reldiff) reldiff /= normxDotDot;
 
     if (reldiff > eps) {
       RCP<Teuchos::FancyOStream> out = this->getOStream();
@@ -363,7 +363,7 @@ StepperNewmarkExplicitAForm<Scalar>::getValidParameters() const
   pl->setName("Default Stepper - " + this->description());
   pl->set<std::string>("Stepper Type", "Newmark Explicit a-Form",
                        "'Stepper Type' must be 'Newmark Explicit a-Form'.");
-  this->getValidParametersBasic(pl);
+  getValidParametersBasic(pl);
   pl->set<bool>("Use FSAL", true);
   pl->set<std::string>("Initial Condition Consistency", "Consistent");
   pl->sublist("Newmark Explicit Parameters", false, "");

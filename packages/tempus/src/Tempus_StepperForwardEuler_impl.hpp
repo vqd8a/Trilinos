@@ -219,7 +219,7 @@ StepperForwardEuler<Scalar>::getValidParameters() const
   pl->setName("Default Stepper - " + this->description());
   pl->set<std::string>("Stepper Type", "Forward Euler",
                        "'Stepper Type' must be 'Forward Euler'.");
-  this->getValidParametersBasic(pl);
+  getValidParametersBasic(pl);
   pl->set<bool>("Use FSAL", true);
   pl->set<std::string>("Initial Condition Consistency", "Consistent");
   return pl;

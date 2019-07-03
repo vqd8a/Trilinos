@@ -228,7 +228,7 @@ StepperLeapfrog<Scalar>::getValidParameters() const
   pl->setName("Default Stepper - " + this->description());
   pl->set<std::string>("Stepper Type", "Leapfrog",
                        "'Stepper Type' must be 'Leapfrog'.");
-  this->getValidParametersBasic(pl);
+  getValidParametersBasic(pl);
   pl->set<std::string>("Initial Condition Consistency", "Consistent");
   return pl;
 }

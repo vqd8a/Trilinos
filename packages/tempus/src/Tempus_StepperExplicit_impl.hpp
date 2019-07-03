@@ -17,7 +17,7 @@ template<class Scalar>
 void StepperExplicit<Scalar>::setModel(
   const Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> >& appModel)
 {
-  this->validExplicitODE(appModel);
+  validExplicitODE(appModel);
   appModel_ = appModel;
 
   inArgs_  = appModel_->getNominalValues();

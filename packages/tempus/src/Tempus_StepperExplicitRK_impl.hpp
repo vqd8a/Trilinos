@@ -197,11 +197,10 @@ void StepperExplicitRK<Scalar>::setTableau(
 {
   ERK_ButcherTableau_ = ERK_ButcherTableau;
 
-  TEUCHOS_TEST_FOR_EXCEPTION(ERK_ButcherTableau_->isImplicit() == true,
-    std::logic_error,
-       "Error - StepperExplicitRK received an implicit Butcher Tableau!\n" <<
-       "        Tableau = " << ERK_ButcherTableau_->description() << "\n");
-
+  TEUCHOS_TEST_FOR_EXCEPTION(
+    ERK_ButcherTableau_->isImplicit() == true, std::logic_error,
+    "Error - StepperExplicitRK received an implicit Butcher Tableau!\n" <<
+    "        Tableau = " << ERK_ButcherTableau_->description() << "\n");
 }
 
 template<class Scalar>
@@ -472,7 +471,7 @@ StepperExplicitRK<Scalar>::getValidParameters() const
     pl->setParameters(*(ERK_ButcherTableau_->getValidParameters()));
   }
 
-  this->getValidParametersBasic(pl);
+  getValidParametersBasic(pl);
   pl->set<std::string>("Initial Condition Consistency", "Consistent");
   pl->set<bool>("Use Embedded", false,
     "'Whether to use Embedded Stepper (if available) or not\n"

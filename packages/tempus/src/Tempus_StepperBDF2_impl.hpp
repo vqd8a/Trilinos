@@ -324,8 +324,7 @@ void StepperBDF2<Scalar>::setParameterList(
   }
   if (!(stepperPL->isParameter("Solver Name"))) {
     stepperPL->set<std::string>("Solver Name", "Default Solver");
-    Teuchos::RCP<Teuchos::ParameterList> solverPL =
-      this->defaultSolverParameters();
+    Teuchos::RCP<Teuchos::ParameterList> solverPL = defaultSolverParameters();
     stepperPL->set("Default Solver", *solverPL);
   }
   // Can not validate because of optional Parameters (e.g., Solver Name).
@@ -347,7 +346,7 @@ StepperBDF2<Scalar>::getValidParameters() const
   Teuchos::RCP<Teuchos::ParameterList> pl = Teuchos::parameterList();
   pl->setName("Default Stepper - " + this->description());
   pl->set<std::string>("Stepper Type", this->description());
-  this->getValidParametersBasic(pl);
+  getValidParametersBasic(pl);
   pl->set<bool>("Initial Condition Consistency Check", false);
   pl->set<bool>("Zero Initial Guess", false);
   pl->set<std::string>("Solver Name", "",
@@ -369,7 +368,7 @@ StepperBDF2<Scalar>::getDefaultParameters() const
     rcp_const_cast<ParameterList>(this->getValidParameters());
 
   pl->set<std::string>("Solver Name", "Default Solver");
-  RCP<ParameterList> solverPL = this->defaultSolverParameters();
+  RCP<ParameterList> solverPL = defaultSolverParameters();
   pl->set("Default Solver", *solverPL);
 
   return pl;

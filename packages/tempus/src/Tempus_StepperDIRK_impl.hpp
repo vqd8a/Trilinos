@@ -420,7 +420,7 @@ StepperDIRK<Scalar>::getValidParameters() const
     pl->setParameters(*(DIRK_ButcherTableau_->getValidParameters()));
   }
 
-  this->getValidParametersBasic(pl);
+  getValidParametersBasic(pl);
   pl->set<bool>("Initial Condition Consistency Check", false);
   pl->set<bool>("Zero Initial Guess", false);
   return pl;
@@ -438,7 +438,7 @@ StepperDIRK<Scalar>::getDefaultParameters() const
     rcp_const_cast<ParameterList>(this->getValidParameters());
 
   pl->set<std::string>("Solver Name", "Default Solver");
-  RCP<ParameterList> solverPL = this->defaultSolverParameters();
+  RCP<ParameterList> solverPL = defaultSolverParameters();
   pl->set("Default Solver", *solverPL);
 
   return pl;

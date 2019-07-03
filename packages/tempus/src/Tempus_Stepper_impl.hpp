@@ -14,8 +14,20 @@ namespace Tempus {
 
 
 template<class Scalar>
-void Stepper<Scalar>::getValidParametersBasic(
-  Teuchos::RCP<Teuchos::ParameterList> pl) const
+void Stepper<Scalar>::modelWarning() const
+{
+  Teuchos::RCP<Teuchos::FancyOStream> out = this->getOStream();
+  Teuchos::OSTab ostab(out,1,this->description());
+  *out << "Warning -- Constructing '" << this->description()
+       << "' without ModelEvaluator!\n"
+       << "  - Can reset ParameterList with setParameterList().\n"
+       << "  - Requires subsequent setModel() and initialize() calls\n"
+       << "    before calling takeStep().\n" << std::endl;
+}
+
+
+void getValidParametersBasic(
+  Teuchos::RCP<Teuchos::ParameterList> pl)
 {
   pl->set<bool>("Use FSAL", false,
     "The First-Step-As-Last (FSAL) principle is the situation where the\n"
@@ -72,175 +84,7 @@ void Stepper<Scalar>::getValidParametersBasic(
     "Individual steppers may override this default.\n");
 }
 
-
-template<class Scalar>
-void Stepper<Scalar>::modelWarning() const
-{
-  Teuchos::RCP<Teuchos::FancyOStream> out = this->getOStream();
-  Teuchos::OSTab ostab(out,1,this->description());
-  *out << "Warning -- Constructing '" << this->description()
-       << "' without ModelEvaluator!\n"
-       << "  - Can reset ParameterList with setParameterList().\n"
-       << "  - Requires subsequent setModel() and initialize() calls\n"
-       << "    before calling takeStep().\n" << std::endl;
-}
-
-
-template<class Scalar>
-void Stepper<Scalar>::validExplicitODE(
-  const Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> >& model) const
-{
-  TEUCHOS_TEST_FOR_EXCEPT( is_null(model) );
-  typedef Thyra::ModelEvaluatorBase MEB;
-  const MEB::InArgs<Scalar>  inArgs  = model->createInArgs();
-  const MEB::OutArgs<Scalar> outArgs = model->createOutArgs();
-  const bool supports = inArgs.supports(MEB::IN_ARG_x) and
-                        outArgs.supports(MEB::OUT_ARG_f);
-
-  TEUCHOS_TEST_FOR_EXCEPTION( supports == false, std::logic_error,
-    model->description() << "can not support an explicit ODE with\n"
-    << "  IN_ARG_x  = " << inArgs.supports(MEB::IN_ARG_x) << "\n"
-    << "  OUT_ARG_f = " << outArgs.supports(MEB::OUT_ARG_f) << "\n"
-    << "Explicit ODE requires:\n"
-    << "  IN_ARG_x  = true\n"
-    << "  OUT_ARG_f = true\n"
-    << "\n"
-    << "NOTE: Currently the convention to evaluate f(x,t) is to set\n"
-    << "xdot=null!  There is no InArgs support to test if xdot is null,\n"
-    << "so we set xdot=null and hope the ModelEvaluator can handle it.\n");
-
-  return;
-}
-
-
-template<class Scalar>
-void Stepper<Scalar>::validSecondOrderExplicitODE(
-  const Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> >& model) const
-{
-  TEUCHOS_TEST_FOR_EXCEPT( is_null(model) );
-  typedef Thyra::ModelEvaluatorBase MEB;
-  const MEB::InArgs<Scalar>  inArgs  = model->createInArgs();
-  const MEB::OutArgs<Scalar> outArgs = model->createOutArgs();
-  const bool supports = inArgs.supports(MEB::IN_ARG_x) and
-                        inArgs.supports(MEB::IN_ARG_x_dot) and
-                        outArgs.supports(MEB::OUT_ARG_f);
-
-  TEUCHOS_TEST_FOR_EXCEPTION( supports == false, std::logic_error,
-    model->description() << "can not support an explicit ODE with\n"
-    << "  IN_ARG_x  = " << inArgs.supports(MEB::IN_ARG_x) << "\n"
-    << "  IN_ARG_x_dot  = " << inArgs.supports(MEB::IN_ARG_x_dot) << "\n"
-    << "  OUT_ARG_f = " << outArgs.supports(MEB::OUT_ARG_f) << "\n"
-    << "Explicit ODE requires:\n"
-    << "  IN_ARG_x  = true\n"
-    << "  IN_ARG_x_dot  = true\n"
-    << "  OUT_ARG_f = true\n"
-    << "\n"
-    << "NOTE: Currently the convention to evaluate f(x, xdot, t) is to\n"
-    << "set xdotdot=null!  There is no InArgs support to test if xdotdot\n"
-    << "is null, so we set xdotdot=null and hope the ModelEvaluator can\n"
-    << "handle it.\n");
-
-  return;
-}
-
-
-template<class Scalar>
-void Stepper<Scalar>::validImplicitODE_DAE(
-  const Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> >& model) const
-{
-  TEUCHOS_TEST_FOR_EXCEPT( is_null(model) );
-  typedef Thyra::ModelEvaluatorBase MEB;
-  const MEB::InArgs<Scalar>  inArgs  = model->createInArgs();
-  const MEB::OutArgs<Scalar> outArgs = model->createOutArgs();
-  const bool supports = inArgs.supports(MEB::IN_ARG_x) and
-                        inArgs.supports(MEB::IN_ARG_x_dot) and
-                        inArgs.supports(MEB::IN_ARG_alpha) and
-                        inArgs.supports(MEB::IN_ARG_beta) and
-                       !inArgs.supports(MEB::IN_ARG_W_x_dot_dot_coeff) and
-                        outArgs.supports(MEB::OUT_ARG_f) and
-                        outArgs.supports(MEB::OUT_ARG_W);
-
-  TEUCHOS_TEST_FOR_EXCEPTION( supports == false, std::logic_error,
-    model->description() << " can not support an implicit ODE with\n"
-    << "  IN_ARG_x                 = "
-    << inArgs.supports(MEB::IN_ARG_x) << "\n"
-    << "  IN_ARG_x_dot             = "
-    << inArgs.supports(MEB::IN_ARG_x_dot) << "\n"
-    << "  IN_ARG_alpha             = "
-    << inArgs.supports(MEB::IN_ARG_alpha) << "\n"
-    << "  IN_ARG_beta              = "
-    << inArgs.supports(MEB::IN_ARG_beta) << "\n"
-    << "  IN_ARG_W_x_dot_dot_coeff = "
-    << inArgs.supports(MEB::IN_ARG_W_x_dot_dot_coeff) << "\n"
-    << "  OUT_ARG_f                = "
-    << outArgs.supports(MEB::OUT_ARG_f) << "\n"
-    << "  OUT_ARG_W                = "
-    << outArgs.supports(MEB::OUT_ARG_W) << "\n"
-    << "Implicit ODE requires:\n"
-    << "  IN_ARG_x                 = true\n"
-    << "  IN_ARG_x_dot             = true\n"
-    << "  IN_ARG_alpha             = true\n"
-    << "  IN_ARG_beta              = true\n"
-    << "  IN_ARG_W_x_dot_dot_coeff = false\n"
-    << "  OUT_ARG_f                = true\n"
-    << "  OUT_ARG_W                = true\n");
-
-  return;
-}
-
-
-template<class Scalar>
-void Stepper<Scalar>::validSecondOrderODE_DAE(
-  const Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> >& model) const
-{
-  TEUCHOS_TEST_FOR_EXCEPT( is_null(model) );
-  typedef Thyra::ModelEvaluatorBase MEB;
-  const MEB::InArgs<Scalar>  inArgs  = model->createInArgs();
-  const MEB::OutArgs<Scalar> outArgs = model->createOutArgs();
-  const bool supports = inArgs.supports(MEB::IN_ARG_x) and
-                        inArgs.supports(MEB::IN_ARG_x_dot) and
-                        inArgs.supports(MEB::IN_ARG_x_dot_dot) and
-                        inArgs.supports(MEB::IN_ARG_alpha) and
-                        inArgs.supports(MEB::IN_ARG_beta) and
-                        inArgs.supports(MEB::IN_ARG_W_x_dot_dot_coeff) and
-                        outArgs.supports(MEB::OUT_ARG_f) and
-                        outArgs.supports(MEB::OUT_ARG_W);
-
-  TEUCHOS_TEST_FOR_EXCEPTION( supports == false, std::logic_error,
-    model->description() << " can not support an implicit ODE with\n"
-    << "  IN_ARG_x                 = "
-    << inArgs.supports(MEB::IN_ARG_x) << "\n"
-    << "  IN_ARG_x_dot             = "
-    << inArgs.supports(MEB::IN_ARG_x_dot) << "\n"
-    << "  IN_ARG_x_dot_dot         = "
-    << inArgs.supports(MEB::IN_ARG_x_dot_dot) << "\n"
-    << "  IN_ARG_alpha             = "
-    << inArgs.supports(MEB::IN_ARG_alpha) << "\n"
-    << "  IN_ARG_beta              = "
-    << inArgs.supports(MEB::IN_ARG_beta) << "\n"
-    << "  IN_ARG_W_x_dot_dot_coeff = "
-    << inArgs.supports(MEB::IN_ARG_W_x_dot_dot_coeff) << "\n"
-    << "  OUT_ARG_f                = "
-    << outArgs.supports(MEB::OUT_ARG_f) << "\n"
-    << "  OUT_ARG_W                = "
-    << outArgs.supports(MEB::OUT_ARG_W) << "\n"
-    << "Implicit Second Order ODE requires:\n"
-    << "  IN_ARG_x                 = true\n"
-    << "  IN_ARG_x_dot             = true\n"
-    << "  IN_ARG_x_dot_dot         = true\n"
-    << "  IN_ARG_alpha             = true\n"
-    << "  IN_ARG_beta              = true\n"
-    << "  IN_ARG_W_x_dot_dot_coeff = true\n"
-    << "  OUT_ARG_f                = true\n"
-    << "  OUT_ARG_W                = true\n");
-
-  return;
-}
-
-
-template<class Scalar>
-Teuchos::RCP<Teuchos::ParameterList>
-Stepper<Scalar>::defaultSolverParameters() const
+Teuchos::RCP<Teuchos::ParameterList> defaultSolverParameters()
 {
   using Teuchos::RCP;
   using Teuchos::ParameterList;
