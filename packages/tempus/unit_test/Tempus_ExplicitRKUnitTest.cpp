@@ -83,6 +83,7 @@ TEUCHOS_UNIT_TEST(ExplicitRKUnitTest, setTableau)
     stepperRef = rcp_dynamic_cast<StepperExplicitRK<double> >(
       sf->createStepper(stepperType, model));
     auto plRef = stepperRef->getParameterList();
+    auto tableau = rcp_const_cast<Tempus::RKButcherTableau<double> >( stepperRef->getTableau());
 
     for(std::vector<std::string>::size_type r = 0; r != resetMethod.size(); r++)
     {
@@ -99,8 +100,6 @@ TEUCHOS_UNIT_TEST(ExplicitRKUnitTest, setTableau)
         stepperReset->setTableauPL(pl);
 
       } else if (resetMethod[r] == "tableau") {       // Reset via Tableau
-        auto tableau = rcp_const_cast<Tempus::RKButcherTableau<double> >(
-          stepperRef->getTableau());
         stepperReset->setTableau(tableau);
 
       } else {
