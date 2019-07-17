@@ -80,8 +80,8 @@ TEUCHOS_UNIT_TEST(BDF2, ParameterList)
     // Remove Start Up Stepper for comparison
     stepperPL->remove("Start Up Stepper Name");
     stepperPL->remove("Default Start Up Stepper");
-    RCP<ParameterList> defaultPL =
-      integrator->getStepper()->getDefaultParameters();
+    RCP<const ParameterList> defaultPL =
+      integrator->getStepper()->getValidParameters();
     bool pass = haveSameValues(*stepperPL, *defaultPL, true);
     if (!pass) {
       std::cout << std::endl;
@@ -97,8 +97,8 @@ TEUCHOS_UNIT_TEST(BDF2, ParameterList)
       Tempus::integratorBasic<double>(model, "BDF2");
 
     RCP<ParameterList> stepperPL = sublist(tempusPL, "Default Stepper", true);
-    RCP<ParameterList> defaultPL =
-      integrator->getStepper()->getDefaultParameters();
+    RCP<const ParameterList> defaultPL =
+      integrator->getStepper()->getValidParameters();
 
     bool pass = haveSameValues(*stepperPL, *defaultPL, true);
     if (!pass) {

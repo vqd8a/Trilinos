@@ -100,7 +100,7 @@ public:
    *  - Requires subsequent setModel() and initialize() calls before calling
    *    takeStep().
   */
-  StepperExplicitRK();
+  StepperExplicitRK(std::string stepperType = "RK Explicit 4 Stage");
 
   /// Constructor to specialize Stepper parameters.
   StepperExplicitRK(
@@ -122,13 +122,16 @@ public:
     virtual void setObserver(
       Teuchos::RCP<StepperObserver<Scalar> > obs = Teuchos::null);
 
-    virtual void setTableau(std::string stepperType);
+    /// Set Stepper to the default settings for stepperType.
+    virtual void setTableau(std::string stepperType = "RK Explicit 4 Stage");
+
+    virtual void setTableauPL(Teuchos::RCP<Teuchos::ParameterList> pList);
 
     virtual void setTableau(
-      Teuchos::RCP<Teuchos::ParameterList> pList = Teuchos::null);
+      Teuchos::RCP<RKButcherTableau<Scalar> > ERK_ButcherTableau);
 
-    virtual void setTableau(
-      Teuchos::RCP<const RKButcherTableau<Scalar> > ERK_ButcherTableau);
+    virtual Teuchos::RCP<const RKButcherTableau<Scalar> > getTableau()
+    { return ERK_ButcherTableau_; }
 
     /// Initialize during construction and after changing input parameters.
     virtual void initialize();
@@ -182,7 +185,7 @@ public:
 
 protected:
 
-  Teuchos::RCP<const RKButcherTableau<Scalar> >          ERK_ButcherTableau_;
+  Teuchos::RCP<RKButcherTableau<Scalar> >                ERK_ButcherTableau_;
 
   std::vector<Teuchos::RCP<Thyra::VectorBase<Scalar> > > stageXDot_;
   Teuchos::RCP<Thyra::VectorBase<Scalar> >               stageX_;

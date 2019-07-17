@@ -72,7 +72,8 @@ public:
 
     /// Set the stepper to use in first step
     void setStartUpStepper(std::string startupStepperName);
-    void setStartUpStepper(Teuchos::RCP<Teuchos::ParameterList>startUpStepperPL=Teuchos::null);
+    void setStartUpStepper(
+      Teuchos::RCP<Teuchos::ParameterList>startUpStepperPL = Teuchos::null);
 
     /// Initialize during construction and after changing input parameters.
     virtual void initialize();

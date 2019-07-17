@@ -13,8 +13,8 @@
 
 #include "Thyra_VectorStdOps.hpp"
 
-#include "Tempus_IntegratorBasic.hpp"
-#include "Tempus_StepperExplicitRK.hpp"
+#include "Tempus_StepperFactory.hpp"
+//#include "Tempus_StepperExplicitRK.hpp"
 
 #include "../TestModels/SinCosModel.hpp"
 #include "../TestModels/VanDerPolModel.hpp"
@@ -28,57 +28,104 @@ namespace Tempus_Unit_Test {
 using Teuchos::RCP;
 using Teuchos::rcp;
 using Teuchos::rcp_const_cast;
+using Teuchos::rcp_dynamic_cast;
 using Teuchos::ParameterList;
 using Teuchos::sublist;
 using Teuchos::getParametersFromXmlFile;
 
-using Tempus::IntegratorBasic;
-using Tempus::SolutionHistory;
-using Tempus::SolutionState;
+using Tempus::StepperFactory;
+using Tempus::StepperExplicitRK;
 
 // Comment out any of the following tests to exclude from build/run.
-#define SETTING_PARAMETERS
+#define SETTABLEAU
 
 
-#ifdef SETTING_PARAMETERS
+#ifdef SETTABLEAU
 // ************************************************************
 // ************************************************************
-TEUCHOS_UNIT_TEST(ExplicitRKUnitTest, SETTING_PARAMETERS)
+TEUCHOS_UNIT_TEST(ExplicitRKUnitTest, setTableau)
 {
-  // Default Stepper construction -----------------------------
-  std::cout << "Unit Test - a" << std::endl;
-  auto stepper = rcp(new Tempus::StepperExplicitRK<double>());
-  std::cout << "Unit Test - b" << std::endl;
-  auto defaultPL = stepper->getParameterList();
-  std::cout << "Unit Test - c" << std::endl;
+  RCP<StepperFactory<double> > sf = Teuchos::rcp(new StepperFactory<double>());
+  RCP<StepperExplicitRK<double> > stepperRef;
+  RCP<StepperExplicitRK<double> > stepperReset;
 
-  Teuchos::RCP<const Tempus::RKButcherTableau<double>> tableau =
-    rcp(new Tempus::ExplicitBogackiShampine32_RKBT<double>());
+  // Setup the SinCosModel
+  RCP<ParameterList> pList =
+    getParametersFromXmlFile("../test/ExplicitRK/Tempus_ExplicitRK_SinCos.xml");
+  RCP<ParameterList> scm_pl = sublist(pList, "SinCosModel", true);
+  auto model = rcp(new Tempus_Test::SinCosModel<double>(scm_pl));
 
-  std::cout << "Unit Test - d" << std::endl;
-  stepper->setTableau(tableau);
-  std::cout << "Unit Test - e" << std::endl;
-  auto setPL = stepper->getParameterList();
-  std::cout << "Unit Test - f" << std::endl;
+  std::vector<std::string> RKMethods;
+  RKMethods.push_back("Bogacki-Shampine 3(2) Pair");
+  RKMethods.push_back("Merson 4(5) Pair");
+  RKMethods.push_back("General ERK");
+  RKMethods.push_back("RK Forward Euler");
+  RKMethods.push_back("RK Explicit 4 Stage");
+  RKMethods.push_back("RK Explicit 3/8 Rule");
+  RKMethods.push_back("RK Explicit 4 Stage 3rd order by Runge");
+  RKMethods.push_back("RK Explicit 5 Stage 3rd order by Kinnmark and Gray");
+  RKMethods.push_back("RK Explicit 3 Stage 3rd order");
+  RKMethods.push_back("RK Explicit 3 Stage 3rd order TVD");
+  RKMethods.push_back("RK Explicit 3 Stage 3rd order by Heun");
+  RKMethods.push_back("RK Explicit Midpoint");
+  RKMethods.push_back("RK Explicit Trapezoidal");
+  RKMethods.push_back("Heuns Method");
 
-  //std::string stepperType = "Bogacki-Shampine 3(2) Pair";
-  //stepper->setTableau(stepperType);
-  //auto setPL = stepper->getParameterList();
+  std::vector<std::string> resetMethod;
+  resetMethod.push_back("stepperType");
+  resetMethod.push_back("ParameterList");
+  resetMethod.push_back("tableau");
 
+  for(std::vector<std::string>::size_type m = 0; m != RKMethods.size(); m++) {
 
-  //stepper->initialize();
-  //auto initializePL = stepper->getParameterList();
+    //  Reference Stepper
+    std::string stepperType = RKMethods[m];
+    stepperRef = rcp_dynamic_cast<StepperExplicitRK<double> >(
+      sf->createStepper(stepperType, model));
+    auto plRef = stepperRef->getParameterList();
 
+    for(std::vector<std::string>::size_type r = 0; r != resetMethod.size(); r++)
+    {
+      //  Reset Stepper
+      stepperReset = rcp_dynamic_cast<StepperExplicitRK<double> >(
+        sf->createStepper("RK Explicit 4 Stage", model));
 
-  bool pass = haveSameValues(*setPL, *defaultPL, true);
-  //if (!pass) {
-    std::cout << std::endl;
-    std::cout << "setPL -------------- \n" << *setPL << std::endl;
-    std::cout << "defaultPL -------------- \n" << *defaultPL << std::endl;
-  //}
-  TEST_ASSERT(pass)
+      if (resetMethod[r] == "stepperType") {          // Reset via stepperType
+        stepperReset->setTableau(stepperType);
+
+      } else if (resetMethod[r] == "ParameterList") { // Reset via ParameterList
+        RCP<ParameterList> pl = Teuchos::parameterList();
+        pl->setParameters(*plRef);
+        stepperReset->setTableauPL(pl);
+
+      } else if (resetMethod[r] == "tableau") {       // Reset via Tableau
+        auto tableau = rcp_const_cast<Tempus::RKButcherTableau<double> >(
+          stepperRef->getTableau());
+        stepperReset->setTableau(tableau);
+
+      } else {
+        std::cout << "Invalid reset method (" << resetMethod[r] << ").\n";
+        TEST_ASSERT(false)
+      }
+
+      stepperReset->initialize();
+      auto plReset = stepperReset->getParameterList();
+
+      bool pass = haveSameValues(*plReset, *plRef, true);
+      if (!pass) {
+        std::cout << std::endl;
+        std::cout << "----  Reset via stepperType -------------" << std::endl;
+        std::cout << "*** stepperType = " << RKMethods[m] << std::endl;
+        std::cout << "-----------------------------------------" << std::endl;
+        std::cout << "plRef   -------------- \n" << *plRef   << std::endl;
+        std::cout << "plReset -------------- \n" << *plReset << std::endl;
+      }
+      TEST_ASSERT(pass)
+    }
+
+  }
 }
-#endif // SETTING_PARAMETERS
+#endif // SETTABLEAU
 
 
 } // namespace Tempus_Test

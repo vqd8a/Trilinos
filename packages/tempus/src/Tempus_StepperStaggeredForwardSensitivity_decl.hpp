@@ -174,6 +174,9 @@ public:
 
   Teuchos::RCP<const Thyra::VectorSpaceBase<Scalar> > get_x_space() const;
 
+  virtual Teuchos::RCP<const Teuchos::ParameterList> getParameterList() const
+  { return stepperPL_; }
+
 private:
 
   void setParams(const Teuchos::RCP<Teuchos::ParameterList> & pl,

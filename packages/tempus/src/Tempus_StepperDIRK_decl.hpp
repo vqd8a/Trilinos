@@ -117,13 +117,15 @@ public:
     virtual void setObserver(
       Teuchos::RCP<StepperObserver<Scalar> > obs = Teuchos::null);
 
-    virtual void setTableau(std::string stepperType);
+    virtual void setTableau(std::string stepperType ="SDIRK 2 Stage 2nd order");
+
+    virtual void setTableauPL(Teuchos::RCP<Teuchos::ParameterList> pList);
 
     virtual void setTableau(
-      Teuchos::RCP<Teuchos::ParameterList> pList = Teuchos::null);
+      Teuchos::RCP<RKButcherTableau<Scalar> > DIRK_ButcherTableau);
 
-    virtual void setTableau(
-      Teuchos::RCP<const RKButcherTableau<Scalar> > DIRK_ButcherTableau);
+    virtual Teuchos::RCP<const RKButcherTableau<Scalar> > getTableau()
+    { return DIRK_ButcherTableau_; }
 
     /// Initialize during construction and after changing input parameters.
     virtual void initialize();
@@ -186,7 +188,7 @@ public:
 
 protected:
 
-  Teuchos::RCP<const RKButcherTableau<Scalar> >          DIRK_ButcherTableau_;
+  Teuchos::RCP<RKButcherTableau<Scalar> >                DIRK_ButcherTableau_;
 
   std::vector<Teuchos::RCP<Thyra::VectorBase<Scalar> > > stageXDot_;
   Teuchos::RCP<Thyra::VectorBase<Scalar> >               stageX_;

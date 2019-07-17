@@ -366,7 +366,8 @@ void StepperOperatorSplit<Scalar>::setParameterList(
   Teuchos::RCP<Teuchos::ParameterList> stepperPL = this->stepperPL_;
   if (pList == Teuchos::null) {
     // Create default parameters if null, otherwise keep current parameters.
-    if (stepperPL == Teuchos::null) stepperPL = this->getDefaultParameters();
+    if (stepperPL == Teuchos::null) stepperPL =
+      Teuchos::rcp_const_cast<Teuchos::ParameterList>(this->getValidParameters());
   } else {
     stepperPL = pList;
   }
@@ -390,7 +391,7 @@ StepperOperatorSplit<Scalar>::getValidParameters() const
   pl->setName("Default Stepper - " + this->description());
   pl->set<std::string>("Stepper Type", "Operator Split",
     "'Stepper Type' must be 'Operator Split'.");
-  getValidParametersBasic(pl);
+  getValidParametersBasic(pl, this->description());
   pl->set<int>   ("Minimum Order", 1,
     "Minimum Operator-split order.  (default = 1)\n");
   pl->set<int>   ("Order", 1,
@@ -400,21 +401,6 @@ StepperOperatorSplit<Scalar>::getValidParameters() const
 
   pl->set<std::string>("Stepper List", "",
     "Comma deliminated list of single quoted Steppers, e.g., \"'Operator 1', 'Operator 2'\".");
-
-  return pl;
-}
-
-
-template<class Scalar>
-Teuchos::RCP<Teuchos::ParameterList>
-StepperOperatorSplit<Scalar>::getDefaultParameters() const
-{
-  using Teuchos::RCP;
-  using Teuchos::ParameterList;
-  using Teuchos::rcp_const_cast;
-
-  RCP<ParameterList> pl =
-    rcp_const_cast<ParameterList>(this->getValidParameters());
 
   return pl;
 }

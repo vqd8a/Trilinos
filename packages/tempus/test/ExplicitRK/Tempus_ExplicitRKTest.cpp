@@ -60,8 +60,9 @@ TEUCHOS_UNIT_TEST(ExplicitRK, ParameterList)
   RKMethods.push_back("RK Explicit 3 Stage 3rd order");
   RKMethods.push_back("RK Explicit 3 Stage 3rd order TVD");
   RKMethods.push_back("RK Explicit 3 Stage 3rd order by Heun");
-  RKMethods.push_back("RK Explicit 2 Stage 2nd order by Runge");
+  RKMethods.push_back("RK Explicit Midpoint");
   RKMethods.push_back("RK Explicit Trapezoidal");
+  RKMethods.push_back("Heuns Method");
 
   for(std::vector<std::string>::size_type m = 0; m != RKMethods.size(); m++) {
 
@@ -81,13 +82,17 @@ TEUCHOS_UNIT_TEST(ExplicitRK, ParameterList)
     RCP<ParameterList> tempusPL  = sublist(pList, "Tempus", true);
     if (RKMethods[m] == "General ERK") {
       tempusPL->sublist("Demo Integrator").set("Stepper Name", "Demo Stepper 2");
+    } else if (RKMethods[m] == "Heuns Method") {
+      // Match default Stepper Type
+      tempusPL->sublist("Demo Stepper")
+                   .set("Stepper Type", "RK Explicit Trapezoidal");
     } else {
       tempusPL->sublist("Demo Stepper").set("Stepper Type", RKMethods[m]);
     }
 
     // Set IC consistency to default value.
-    //tempusPL->sublist("Demo Stepper")
-    //             .set("Initial Condition Consistency", "None");
+    tempusPL->sublist("Demo Stepper")
+                 .set("Initial Condition Consistency", "None");
 
     // Test constructor IntegratorBasic(tempusPL, model)
     {
@@ -98,7 +103,8 @@ TEUCHOS_UNIT_TEST(ExplicitRK, ParameterList)
       if (RKMethods[m] == "General ERK")
         stepperPL = sublist(tempusPL, "Demo Stepper 2", true);
       RCP<ParameterList> defaultPL =
-        integrator->getStepper()->getDefaultParameters();
+        Teuchos::rcp_const_cast<Teuchos::ParameterList>(
+          integrator->getStepper()->getValidParameters());
       defaultPL->remove("Description");
 
       bool pass = haveSameValues(*stepperPL, *defaultPL, true);
@@ -119,7 +125,8 @@ TEUCHOS_UNIT_TEST(ExplicitRK, ParameterList)
       if (RKMethods[m] == "General ERK")
         stepperPL = sublist(tempusPL, "Demo Stepper 2", true);
       RCP<ParameterList> defaultPL =
-        integrator->getStepper()->getDefaultParameters();
+        Teuchos::rcp_const_cast<Teuchos::ParameterList>(
+          integrator->getStepper()->getValidParameters());
       defaultPL->remove("Description");
 
       bool pass = haveSameValues(*stepperPL, *defaultPL, true);
@@ -246,12 +253,14 @@ TEUCHOS_UNIT_TEST(ExplicitRK, SinCos)
   RKMethods.push_back("RK Explicit 3 Stage 3rd order");
   RKMethods.push_back("RK Explicit 3 Stage 3rd order TVD");
   RKMethods.push_back("RK Explicit 3 Stage 3rd order by Heun");
-  RKMethods.push_back("RK Explicit 2 Stage 2nd order by Runge");
+  RKMethods.push_back("RK Explicit Midpoint");
   RKMethods.push_back("RK Explicit Trapezoidal");
+  RKMethods.push_back("Heuns Method");
   RKMethods.push_back("Bogacki-Shampine 3(2) Pair");
   RKMethods.push_back("General ERK");
   RKMethods.push_back("General ERK Embedded");
-  //RKMethods.push_back("Merson 4(5) Pair"); // slope = 3.87816
+  RKMethods.push_back("Merson 4(5) Pair"); // slope = 3.87816
+
   std::vector<double> RKMethodErrors;
   RKMethodErrors.push_back(0.051123);
   RKMethodErrors.push_back(8.33251e-07);
@@ -263,10 +272,11 @@ TEUCHOS_UNIT_TEST(ExplicitRK, SinCos)
   RKMethodErrors.push_back(4.16603e-05);
   RKMethodErrors.push_back(0.00166645);
   RKMethodErrors.push_back(0.00166645);
+  RKMethodErrors.push_back(0.00166645);
   RKMethodErrors.push_back(4.16603e-05);
   RKMethodErrors.push_back(8.33251e-07);
   RKMethodErrors.push_back(4.16603e-05);
-  //RKMethodErrors.push_back(1.39383e-07);
+  RKMethodErrors.push_back(1.39383e-07);
 
   for(std::vector<std::string>::size_type m = 0; m != RKMethods.size(); m++) {
 
@@ -384,8 +394,10 @@ TEUCHOS_UNIT_TEST(ExplicitRK, SinCos)
                     solutions,    xErrorNorm,    xSlope,
                     solutionsDot, xDotErrorNorm, xDotSlope);
 
-    TEST_FLOATING_EQUALITY( xSlope,                    order, 0.01   );
-    TEST_FLOATING_EQUALITY( xErrorNorm[0], RKMethodErrors[m], 1.0e-4 );
+    double order_tol = 0.01;
+    if (RKMethods[m] == "Merson 4(5) Pair") order_tol = 0.04;
+    TEST_FLOATING_EQUALITY( xSlope,                    order, order_tol );
+    TEST_FLOATING_EQUALITY( xErrorNorm[0], RKMethodErrors[m],    1.0e-4 );
     // xDot not yet available for ExplicitRK methods.
     //TEST_FLOATING_EQUALITY( xDotSlope,                 order, 0.01   );
     //TEST_FLOATING_EQUALITY( xDotErrorNorm[0],      0.0486418, 1.0e-4 );

@@ -361,7 +361,8 @@ void StepperHHTAlpha<Scalar>::setParameterList(
 #endif
   if (pList == Teuchos::null) {
     // Create default parameters if null, otherwise keep current parameters.
-    if (this->stepperPL_ == Teuchos::null) this->stepperPL_ = this->getDefaultParameters();
+    if (this->stepperPL_ == Teuchos::null) this->stepperPL_ =
+      Teuchos::rcp_const_cast<Teuchos::ParameterList>(this->getValidParameters());
   } else {
     this->stepperPL_ = pList;
   }
@@ -470,31 +471,10 @@ StepperHHTAlpha<Scalar>::getValidParameters() const
   *out_ << "DEBUG: " << __PRETTY_FUNCTION__ << "\n";
 #endif
   Teuchos::RCP<Teuchos::ParameterList> pl = Teuchos::parameterList();
-  pl->setName("Default Stepper - " + this->description());
-  pl->set<std::string>("Stepper Type", this->description());
-  getValidParametersBasic(pl);
-  pl->set<bool>       ("Zero Initial Guess", false);
-  pl->set<std::string>("Solver Name", "",
-    "Name of ParameterList containing the solver specifications.");
-
-  return pl;
-}
-template<class Scalar>
-Teuchos::RCP<Teuchos::ParameterList>
-StepperHHTAlpha<Scalar>::getDefaultParameters() const
-{
-#ifdef VERBOSE_DEBUG_OUTPUT
-  *out_ << "DEBUG: " << __PRETTY_FUNCTION__ << "\n";
-#endif
-  using Teuchos::RCP;
-  using Teuchos::ParameterList;
-  using Teuchos::rcp_const_cast;
-
-  RCP<ParameterList> pl =
-    rcp_const_cast<ParameterList>(this->getValidParameters());
-
+  getValidParametersBasic(pl, this->description());
   pl->set<std::string>("Solver Name", "Default Solver");
-  RCP<ParameterList> solverPL = defaultSolverParameters();
+  pl->set<bool>       ("Zero Initial Guess", false);
+  Teuchos::RCP<Teuchos::ParameterList> solverPL = defaultSolverParameters();
   pl->set("Default Solver", *solverPL);
 
   return pl;

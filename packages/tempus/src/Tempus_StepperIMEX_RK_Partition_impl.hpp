@@ -9,7 +9,7 @@
 #ifndef Tempus_StepperIMEX_RK_Partition_impl_hpp
 #define Tempus_StepperIMEX_RK_Partition_impl_hpp
 
-#include "Tempus_RKButcherTableauBuilder.hpp"
+#include "Tempus_RKButcherTableauFactory.hpp"
 #include "Tempus_config.hpp"
 #include "Tempus_StepperFactory.hpp"
 #include "Tempus_WrapperModelEvaluatorPairPartIMEX_Basic.hpp"
@@ -115,7 +115,7 @@ void StepperIMEX_RK_Partition<Scalar>::setTableaus(
       tableauPL->set<int>("order", 1);
       pl->set("Tableau", *tableauPL);
 
-      this->setExplicitTableau("General ERK", pl);
+      this->setExplicitTableau(pl);
     }
     {
       // Implicit Tableau
@@ -132,7 +132,7 @@ void StepperIMEX_RK_Partition<Scalar>::setTableaus(
       tableauPL->set<int>("order", 1);
       pl->set("Tableau", *tableauPL);
 
-      this->setImplicitTableau("General DIRK", pl);
+      this->setImplicitTableau(pl);
     }
     description_ = stepperType;
     order_ = 1;
@@ -140,7 +140,7 @@ void StepperIMEX_RK_Partition<Scalar>::setTableaus(
   } else if (stepperType == "Partitioned IMEX RK SSP2") {
     typedef Teuchos::ScalarTraits<Scalar> ST;
     // Explicit Tableau
-    this->setExplicitTableau("RK Explicit Trapezoidal", Teuchos::null);
+    this->setExplicitTableau("RK Explicit Trapezoidal");
 
     // Implicit Tableau
     Teuchos::RCP<Teuchos::ParameterList> pl = Teuchos::parameterList();
@@ -149,7 +149,7 @@ void StepperIMEX_RK_Partition<Scalar>::setTableaus(
     const Scalar one = ST::one();
     Scalar gamma = one - one/ST::squareroot(2*one);
     pl->set<double>("gamma",gamma);
-    this->setImplicitTableau("SDIRK 2 Stage 3rd order", pl);
+    this->setImplicitTableau(pl);
 
     description_ = stepperType;
     order_ = 2;
@@ -178,7 +178,7 @@ void StepperIMEX_RK_Partition<Scalar>::setTableaus(
       tableauPL->set<int>("order", 2);
       pl->set("Tableau", *tableauPL);
 
-      this->setExplicitTableau("General ERK", pl);
+      this->setExplicitTableau(pl);
     }
     {
       // Implicit Tableau
@@ -196,7 +196,7 @@ void StepperIMEX_RK_Partition<Scalar>::setTableaus(
       tableauPL->set<int>("order", 3);
       pl->set("Tableau", *tableauPL);
 
-      this->setImplicitTableau("General DIRK", pl);
+      this->setImplicitTableau(pl);
     }
     description_ = stepperType;
     order_ = 3;
@@ -209,8 +209,8 @@ void StepperIMEX_RK_Partition<Scalar>::setTableaus(
       new Teuchos::ParameterList(pList->sublist("IMEX-RK Implicit Stepper")));
 
     // TODO: should probably check the order of the tableau match
-    this->setExplicitTableau("General ERK",  explicitPL);
-    this->setImplicitTableau("General DIRK", implicitPL);
+    this->setExplicitTableau(explicitPL);
+    this->setImplicitTableau(implicitPL);
     description_ = stepperType;
     order_ = pList->get<int>("overall order", 0);
 
@@ -244,11 +244,20 @@ void StepperIMEX_RK_Partition<Scalar>::setTableaus(
 
 template<class Scalar>
 void StepperIMEX_RK_Partition<Scalar>::setExplicitTableau(
-  std::string stepperType,
+  std::string stepperType)
+{
+  Teuchos::RCP<const RKButcherTableau<Scalar> > explicitTableau =
+    createRKButcherTableau<Scalar>(stepperType);
+  this->setExplicitTableau(explicitTableau);
+}
+
+
+template<class Scalar>
+void StepperIMEX_RK_Partition<Scalar>::setExplicitTableau(
   Teuchos::RCP<Teuchos::ParameterList> pList)
 {
   Teuchos::RCP<const RKButcherTableau<Scalar> > explicitTableau =
-    createRKBT<Scalar>(stepperType,pList);
+    createRKButcherTableau<Scalar>(pList);
   this->setExplicitTableau(explicitTableau);
 }
 
@@ -267,11 +276,20 @@ void StepperIMEX_RK_Partition<Scalar>::setExplicitTableau(
 
 template<class Scalar>
 void StepperIMEX_RK_Partition<Scalar>::setImplicitTableau(
-  std::string stepperType,
+  std::string stepperType)
+{
+  Teuchos::RCP<const RKButcherTableau<Scalar> > implicitTableau =
+    createRKButcherTableau<Scalar>(stepperType);
+  this->setImplicitTableau(implicitTableau);
+}
+
+
+template<class Scalar>
+void StepperIMEX_RK_Partition<Scalar>::setImplicitTableau(
   Teuchos::RCP<Teuchos::ParameterList> pList)
 {
   Teuchos::RCP<const RKButcherTableau<Scalar> > implicitTableau =
-    createRKBT<Scalar>(stepperType,pList);
+    createRKButcherTableau<Scalar>(pList);
   this->setImplicitTableau(implicitTableau);
 }
 
@@ -730,7 +748,8 @@ void StepperIMEX_RK_Partition<Scalar>::setParameterList(
 {
   if (pList == Teuchos::null) {
     // Create default parameters if null, otherwise keep current parameters.
-    if (this->stepperPL_ == Teuchos::null) this->stepperPL_ = this->getDefaultParameters();
+    if (this->stepperPL_ == Teuchos::null) this->stepperPL_ =
+      Teuchos::rcp_const_cast<Teuchos::ParameterList>(this->getValidParameters());
   } else {
     this->stepperPL_ = pList;
   }
@@ -746,28 +765,11 @@ StepperIMEX_RK_Partition<Scalar>::getValidParameters() const
   Teuchos::RCP<Teuchos::ParameterList> pl = Teuchos::parameterList();
   pl->setName("Default Stepper - Partitioned IMEX RK SSP2");
   pl->set<std::string>("Stepper Type", "Partitioned IMEX RK SSP2");
-  getValidParametersBasic(pl);
+  getValidParametersBasic(pl, this->description());
   pl->set<bool>("Initial Condition Consistency Check", false);
-  pl->set<bool>       ("Zero Initial Guess", false);
-  pl->set<std::string>("Solver Name", "",
-    "Name of ParameterList containing the solver specifications.");
-
-  return pl;
-}
-
-template <class Scalar>
-Teuchos::RCP<Teuchos::ParameterList>
-StepperIMEX_RK_Partition<Scalar>::getDefaultParameters() const
-{
-  using Teuchos::RCP;
-  using Teuchos::ParameterList;
-  using Teuchos::rcp_const_cast;
-
-  RCP<ParameterList> pl =
-    rcp_const_cast<ParameterList>(this->getValidParameters());
-
   pl->set<std::string>("Solver Name", "Default Solver");
-  RCP<ParameterList> solverPL = defaultSolverParameters();
+  pl->set<bool>       ("Zero Initial Guess", false);
+  Teuchos::RCP<Teuchos::ParameterList> solverPL = defaultSolverParameters();
   pl->set("Default Solver", *solverPL);
 
   return pl;

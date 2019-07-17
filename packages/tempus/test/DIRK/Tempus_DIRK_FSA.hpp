@@ -48,6 +48,7 @@ void test_sincos_fsa(const std::string& method_name,
   std::vector<std::string> RKMethods;
   RKMethods.push_back("RK Backward Euler");
   RKMethods.push_back("IRK 1 Stage Theta Method");
+  RKMethods.push_back("RK Implicit Midpoint");
   RKMethods.push_back("SDIRK 1 Stage 1st order");
   RKMethods.push_back("SDIRK 2 Stage 2nd order");
   RKMethods.push_back("SDIRK 2 Stage 3rd order");
@@ -56,17 +57,21 @@ void test_sincos_fsa(const std::string& method_name,
   RKMethods.push_back("SDIRK 3 Stage 4th order");
   RKMethods.push_back("SDIRK 5 Stage 4th order");
   RKMethods.push_back("SDIRK 5 Stage 5th order");
+  RKMethods.push_back("SDIRK 2(1) Pair");
+  RKMethods.push_back("RK Trapezoidal Rule");
+  RKMethods.push_back("RK Crank-Nicolson");
 
   // Check that method_name is valid
   if (method_name != "") {
     auto it = std::find(RKMethods.begin(), RKMethods.end(), method_name);
     TEUCHOS_TEST_FOR_EXCEPTION(it == RKMethods.end(), std::logic_error,
-                               "Invalid RK method name " << method_name);
+      "Invalid RK method name '" << method_name << "'");
   }
 
   std::vector<double> RKMethodErrors;
   if (use_combined_method) {
     RKMethodErrors.push_back(0.0428449);
+    RKMethodErrors.push_back(0.000297933);
     RKMethodErrors.push_back(0.000297933);
     RKMethodErrors.push_back(0.0428449);
     RKMethodErrors.push_back(0.000144507);
@@ -76,18 +81,25 @@ void test_sincos_fsa(const std::string& method_name,
     RKMethodErrors.push_back(5.44037e-07);
     RKMethodErrors.push_back(2.77342e-09);
     RKMethodErrors.push_back(1.21689e-10);
+    RKMethodErrors.push_back(0.000603848);
+    RKMethodErrors.push_back(0.000297933);
+    RKMethodErrors.push_back(0.000297933);
   }
   else {
     RKMethodErrors.push_back(0.0428449);
+    RKMethodErrors.push_back(0.000221049);
     RKMethodErrors.push_back(0.000221049);
     RKMethodErrors.push_back(0.0428449);
     RKMethodErrors.push_back(0.000125232);
     RKMethodErrors.push_back(4.79475e-06);
     RKMethodErrors.push_back(9.63899e-07);
-    RKMethodErrors.push_back(0.0141323);
+    RKMethodErrors.push_back(0.000297933);
     RKMethodErrors.push_back(2.9362e-07);
     RKMethodErrors.push_back(9.20081e-08);
     RKMethodErrors.push_back(9.16252e-08);
+    RKMethodErrors.push_back(0.00043969);
+    RKMethodErrors.push_back(0.000297933);
+    RKMethodErrors.push_back(0.000297933);
   }
 
   Teuchos::RCP<const Teuchos::Comm<int> > comm =
@@ -154,10 +166,6 @@ void test_sincos_fsa(const std::string& method_name,
       RCP<Tempus::IntegratorForwardSensitivity<double> > integrator =
         Tempus::integratorForwardSensitivity<double>(pl, model);
       order = integrator->getStepper()->getOrder();
-
-      // Fixme - order should be 2, but only gets first order?
-      if (use_combined_method == false &&
-          RKMethods[m] == "EDIRK 2 Stage Theta Method") order = 1.0;
 
       // Initial Conditions
       // During the Integrator construction, the initial SolutionState

@@ -27,8 +27,11 @@ void Stepper<Scalar>::modelWarning() const
 
 
 void getValidParametersBasic(
-  Teuchos::RCP<Teuchos::ParameterList> pl)
+  Teuchos::RCP<Teuchos::ParameterList> pl, std::string description)
 {
+  pl->setName("Default Stepper - " + description);
+  pl->set<std::string>("Stepper Type", description);
+
   pl->set<bool>("Use FSAL", false,
     "The First-Step-As-Last (FSAL) principle is the situation where the\n"
     "last function evaluation, f(x^{n-1},t^{n-1}) [a.k.a. xDot^{n-1}],\n"
@@ -48,7 +51,7 @@ void getValidParametersBasic(
     "incorrect solutions.\n"
     "\n"
     "Default in general for explicit and implicit steppers is false,\n"
-    "but individual steppers can override this default.\n");
+    "but individual steppers can override this default.");
 
   pl->set<std::string>("Initial Condition Consistency", "None",
     "This indicates which type of consistency should be applied to\n"
@@ -73,7 +76,7 @@ void getValidParametersBasic(
     "the application often knows its IC and can set it the initial\n"
     "SolutionState.  Also, as noted above, 'Consistent' may require\n"
     "another Jacobian from the application.  Individual steppers may\n"
-    "override these defaults.\n");
+    "override these defaults.");
 
   pl->set<bool>("Initial Condition Consistency Check", true,
     "Check if the initial condition, x and xDot, is consistent with the\n"
@@ -81,8 +84,9 @@ void getValidParametersBasic(
     "\n"
     "In general for explicit and implicit steppers, the default is true,\n"
     "because it is fairly cheap with just one residual evaluation.\n"
-    "Individual steppers may override this default.\n");
+    "Individual steppers may override this default.");
 }
+
 
 Teuchos::RCP<Teuchos::ParameterList> defaultSolverParameters()
 {

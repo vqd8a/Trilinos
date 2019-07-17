@@ -9,7 +9,7 @@
 #ifndef Tempus_StepperDIRK_impl_hpp
 #define Tempus_StepperDIRK_impl_hpp
 
-#include "Tempus_RKButcherTableauBuilder.hpp"
+#include "Tempus_RKButcherTableauFactory.hpp"
 #include "Tempus_config.hpp"
 #include "Tempus_StepperFactory.hpp"
 #include "Tempus_WrapperModelEvaluatorBasic.hpp"
@@ -36,7 +36,7 @@ StepperDIRK<Scalar>::StepperDIRK(
   const Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> >& appModel,
   Teuchos::RCP<Teuchos::ParameterList>                      pList)
 {
-  this->setTableau(pList);
+  this->setTableauPL(pList);
   this->setParameterList(pList);
 
   if (appModel == Teuchos::null) {
@@ -86,42 +86,37 @@ StepperDIRK<Scalar>::StepperDIRK(
 template<class Scalar>
 void StepperDIRK<Scalar>::setTableau(std::string stepperType)
 {
-  if (stepperType == "") {
-    this->setTableau();
-  } else {
-    Teuchos::RCP<const RKButcherTableau<Scalar> > DIRK_ButcherTableau =
-      createRKBT<Scalar>(stepperType, this->stepperPL_);
-    this->setTableau(DIRK_ButcherTableau);
-  }
+  Teuchos::RCP<RKButcherTableau<Scalar> > DIRK_ButcherTableau =
+    createRKButcherTableau<Scalar>(stepperType);
+  this->setTableau(DIRK_ButcherTableau);
 }
 
 
 template<class Scalar>
-void StepperDIRK<Scalar>::setTableau(Teuchos::RCP<Teuchos::ParameterList> pList)
+void StepperDIRK<Scalar>::setTableauPL(
+  Teuchos::RCP<Teuchos::ParameterList> pList)
 {
   if (pList == Teuchos::null) {
     // Create default parameters if null, otherwise keep current parameters.
-    if (this->stepperPL_ == Teuchos::null)
-      this->stepperPL_ = this->getDefaultParameters();
+    if (this->stepperPL_ == Teuchos::null) this->stepperPL_ =
+      Teuchos::rcp_const_cast<Teuchos::ParameterList>(this->getValidParameters());
   } else {
     this->stepperPL_ = pList;
   }
 
-  std::string stepperType =
-    this->stepperPL_->template get<std::string>("Stepper Type",
-                                                "SDIRK 2 Stage 2nd order");
-  Teuchos::RCP<const RKButcherTableau<Scalar> > DIRK_ButcherTableau =
-    createRKBT<Scalar>(stepperType, this->stepperPL_);
+  Teuchos::RCP<RKButcherTableau<Scalar> > DIRK_ButcherTableau =
+    createRKButcherTableau<Scalar>(this->stepperPL_);
   this->setTableau(DIRK_ButcherTableau);
 }
 
 
 template<class Scalar>
 void StepperDIRK<Scalar>::setTableau(
-  Teuchos::RCP<const RKButcherTableau<Scalar> > DIRK_ButcherTableau)
+  Teuchos::RCP<RKButcherTableau<Scalar> > DIRK_ButcherTableau)
 {
   DIRK_ButcherTableau_ = DIRK_ButcherTableau;
-
+  this->stepperPL_ = Teuchos::rcp_const_cast<Teuchos::ParameterList>(
+    DIRK_ButcherTableau_->getParameterList());
   TEUCHOS_TEST_FOR_EXCEPTION(DIRK_ButcherTableau_->isDIRK() != true,
     std::logic_error,
        "Error - StepperDIRK do not received a DIRK Butcher Tableau!\n" <<
@@ -158,7 +153,7 @@ void StepperDIRK<Scalar>::initialize()
     "Error - Need to set the model, setModel(), before calling "
     "StepperDIRK::initialize()\n");
 
-  this->setTableau(this->stepperPL_);
+  this->setTableauPL(this->stepperPL_);
   this->setParameterList(this->stepperPL_);
   this->setSolver();
   this->setObserver();
@@ -398,12 +393,15 @@ void StepperDIRK<Scalar>::setParameterList(
 {
   if (pList == Teuchos::null) {
     // Create default parameters if null, otherwise keep current parameters.
-    if (this->stepperPL_ == Teuchos::null) this->stepperPL_ = this->getDefaultParameters();
+    if (this->stepperPL_ == Teuchos::null) this->stepperPL_ =
+      Teuchos::rcp_const_cast<Teuchos::ParameterList>(this->getValidParameters());
   } else {
     this->stepperPL_ = pList;
   }
   // Can not validate because of optional Parameters.
-  //stepperPL_->validateParametersAndSetDefaults(*this->getValidParameters());
+  //this->stepperPL_->validateParametersAndSetDefaults(*this->getValidParameters(),0);
+
+  DIRK_ButcherTableau_->setParameterList(this->stepperPL_);
 }
 
 
@@ -413,33 +411,12 @@ StepperDIRK<Scalar>::getValidParameters() const
 {
   Teuchos::RCP<Teuchos::ParameterList> pl = Teuchos::parameterList();
   if (DIRK_ButcherTableau_ == Teuchos::null) {
-    auto DIRK_ButcherTableau =
-      createRKBT<Scalar>("SDIRK 2 Stage 2nd order", Teuchos::null);
-    pl->setParameters(*(DIRK_ButcherTableau->getValidParameters()));
+    auto tableau = createRKButcherTableau<Scalar>("SDIRK 2 Stage 2nd order");
+    pl->setParameters( *(tableau->getValidParameters()));
   } else {
-    pl->setParameters(*(DIRK_ButcherTableau_->getValidParameters()));
+    pl->setParameters( *(DIRK_ButcherTableau_->getValidParameters()));
   }
 
-  getValidParametersBasic(pl);
-  pl->set<bool>("Initial Condition Consistency Check", false);
-  pl->set<bool>("Zero Initial Guess", false);
-  return pl;
-}
-
-template <class Scalar>
-Teuchos::RCP<Teuchos::ParameterList>
-StepperDIRK<Scalar>::getDefaultParameters() const
-{
-  using Teuchos::RCP;
-  using Teuchos::ParameterList;
-  using Teuchos::rcp_const_cast;
-
-  RCP<ParameterList> pl =
-    rcp_const_cast<ParameterList>(this->getValidParameters());
-
-  pl->set<std::string>("Solver Name", "Default Solver");
-  RCP<ParameterList> solverPL = defaultSolverParameters();
-  pl->set("Default Solver", *solverPL);
 
   return pl;
 }

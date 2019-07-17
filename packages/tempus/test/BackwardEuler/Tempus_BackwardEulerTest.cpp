@@ -80,8 +80,8 @@ TEUCHOS_UNIT_TEST(BackwardEuler, ParameterList)
     // Remove Predictor for comparison
     stepperPL->remove("Predictor Name");
     stepperPL->remove("Default Predictor");
-    RCP<ParameterList> defaultPL =
-      integrator->getStepper()->getDefaultParameters();
+    RCP<const ParameterList> defaultPL =
+      integrator->getStepper()->getValidParameters();
 
     bool pass = haveSameValues(*stepperPL, *defaultPL, true);
     if (!pass) {
@@ -98,8 +98,8 @@ TEUCHOS_UNIT_TEST(BackwardEuler, ParameterList)
       Tempus::integratorBasic<double>(model, "Backward Euler");
 
     RCP<ParameterList> stepperPL = sublist(tempusPL, "Default Stepper", true);
-    RCP<ParameterList> defaultPL =
-      integrator->getStepper()->getDefaultParameters();
+    RCP<const ParameterList> defaultPL =
+      integrator->getStepper()->getValidParameters();
 
     bool pass = haveSameValues(*stepperPL, *defaultPL, true);
     if (!pass) {

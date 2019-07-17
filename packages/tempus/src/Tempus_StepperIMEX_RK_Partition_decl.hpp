@@ -259,16 +259,20 @@ public:
                              std::string stepperType = "");
 
     /// Set the explicit tableau from ParameterList
-    virtual void setExplicitTableau(std::string stepperType,
-                                    Teuchos::RCP<Teuchos::ParameterList> pList);
+    virtual void setExplicitTableau(std::string stepperType);
+
+    /// Set the explicit tableau from ParameterList
+    virtual void setExplicitTableau(Teuchos::RCP<Teuchos::ParameterList> pList);
 
     /// Set the explicit tableau from tableau
     virtual void setExplicitTableau(
       Teuchos::RCP<const RKButcherTableau<Scalar> > explicitTableau);
 
     /// Set the implicit tableau from ParameterList
-    virtual void setImplicitTableau(std::string stepperType,
-                                    Teuchos::RCP<Teuchos::ParameterList> pList);
+    virtual void setImplicitTableau(std::string stepperType);
+
+    /// Set the implicit tableau from ParameterList
+    virtual void setImplicitTableau(Teuchos::RCP<Teuchos::ParameterList> pList);
 
     /// Set the implicit tableau from tableau
     virtual void setImplicitTableau(

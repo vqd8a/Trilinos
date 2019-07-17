@@ -315,27 +315,27 @@ template <class Scalar>
 void StepperBDF2<Scalar>::setParameterList(
   Teuchos::RCP<Teuchos::ParameterList> const& pList)
 {
-  Teuchos::RCP<Teuchos::ParameterList> stepperPL = this->stepperPL_;
   if (pList == Teuchos::null) {
     // Create default parameters if null, otherwise keep current parameters.
-    if (stepperPL == Teuchos::null) stepperPL = this->getDefaultParameters();
+    if (this->stepperPL_ == Teuchos::null) this->stepperPL_ =
+      Teuchos::rcp_const_cast<Teuchos::ParameterList>(this->getValidParameters());
   } else {
-    stepperPL = pList;
+    this->stepperPL_ = pList;
   }
-  if (!(stepperPL->isParameter("Solver Name"))) {
-    stepperPL->set<std::string>("Solver Name", "Default Solver");
+  if (!(this->stepperPL_->isParameter("Solver Name"))) {
+    this->stepperPL_->template set<std::string>("Solver Name", "Default Solver");
     Teuchos::RCP<Teuchos::ParameterList> solverPL = defaultSolverParameters();
-    stepperPL->set("Default Solver", *solverPL);
+    this->stepperPL_->template set("Default Solver", *solverPL);
   }
   // Can not validate because of optional Parameters (e.g., Solver Name).
   //stepperPL->validateParametersAndSetDefaults(*this->getValidParameters());
 
-  std::string stepperType = stepperPL->get<std::string>("Stepper Type");
+  std::string stepperType =
+    this->stepperPL_->template get<std::string>("Stepper Type");
   TEUCHOS_TEST_FOR_EXCEPTION( stepperType != "BDF2", std::logic_error,
        "Error - Stepper Type is not 'BDF2'!\n"
-    << "  Stepper Type = "<<stepperPL->get<std::string>("Stepper Type")<<"\n");
-
-  this->stepperPL_ = stepperPL;
+    << "  Stepper Type = "
+    << this->stepperPL_->template get<std::string>("Stepper Type")<<"\n");
 }
 
 
@@ -344,31 +344,11 @@ Teuchos::RCP<const Teuchos::ParameterList>
 StepperBDF2<Scalar>::getValidParameters() const
 {
   Teuchos::RCP<Teuchos::ParameterList> pl = Teuchos::parameterList();
-  pl->setName("Default Stepper - " + this->description());
-  pl->set<std::string>("Stepper Type", this->description());
-  getValidParametersBasic(pl);
+  getValidParametersBasic(pl, this->description());
   pl->set<bool>("Initial Condition Consistency Check", false);
-  pl->set<bool>("Zero Initial Guess", false);
-  pl->set<std::string>("Solver Name", "",
-    "Name of ParameterList containing the solver specifications.");
-
-  return pl;
-}
-
-
-template<class Scalar>
-Teuchos::RCP<Teuchos::ParameterList>
-StepperBDF2<Scalar>::getDefaultParameters() const
-{
-  using Teuchos::RCP;
-  using Teuchos::ParameterList;
-  using Teuchos::rcp_const_cast;
-
-  RCP<ParameterList> pl =
-    rcp_const_cast<ParameterList>(this->getValidParameters());
-
   pl->set<std::string>("Solver Name", "Default Solver");
-  RCP<ParameterList> solverPL = defaultSolverParameters();
+  pl->set<bool>("Zero Initial Guess", false);
+  Teuchos::RCP<Teuchos::ParameterList> solverPL = defaultSolverParameters();
   pl->set("Default Solver", *solverPL);
 
   return pl;

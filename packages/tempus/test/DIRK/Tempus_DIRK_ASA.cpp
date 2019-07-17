@@ -60,7 +60,7 @@ TEUCHOS_UNIT_TEST(DIRK, SinCos_ASA)
   RKMethodErrors.push_back(8.48235e-05);
   RKMethodErrors.push_back(4.87848e-06);
   RKMethodErrors.push_back(7.30827e-07);
-  RKMethodErrors.push_back(0.0144662);
+  RKMethodErrors.push_back(0.000272997);
   RKMethodErrors.push_back(3.10132e-07);
   RKMethodErrors.push_back(7.56838e-10);
   RKMethodErrors.push_back(1.32374e-10);
@@ -123,9 +123,6 @@ TEUCHOS_UNIT_TEST(DIRK, SinCos_ASA)
       RCP<Tempus::IntegratorAdjointSensitivity<double> > integrator =
         Tempus::integratorAdjointSensitivity<double>(pl, model);
       order = integrator->getStepper()->getOrder();
-
-      // Fixme - order should be 2, but only gets first order?
-      if (RKMethods[m] == "EDIRK 2 Stage Theta Method") order = 1.0;
 
       // Initial Conditions
       // During the Integrator construction, the initial SolutionState

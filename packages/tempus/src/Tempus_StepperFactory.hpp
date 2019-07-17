@@ -109,8 +109,8 @@ private:
       stepperType == "RK Explicit 3 Stage 3rd order" ||
       stepperType == "RK Explicit 3 Stage 3rd order TVD" ||
       stepperType == "RK Explicit 3 Stage 3rd order by Heun" ||
-      stepperType == "RK Explicit 2 Stage 2nd order by Runge" ||
-      stepperType == "RK Explicit Trapezoidal" ||
+      stepperType == "RK Explicit Midpoint" ||
+      stepperType == "RK Explicit Trapezoidal" || stepperType == "Heuns Method" ||
       stepperType == "Bogacki-Shampine 3(2) Pair" ||
       stepperType == "Merson 4(5) Pair" ||
       stepperType == "General ERK" )
@@ -118,7 +118,7 @@ private:
     else if (
       stepperType == "RK Backward Euler" ||
       stepperType == "IRK 1 Stage Theta Method" ||
-      stepperType == "Implicit Midpoint" ||
+      stepperType == "RK Implicit Midpoint" ||
       stepperType == "SDIRK 1 Stage 1st order" ||
       stepperType == "SDIRK 2 Stage 2nd order" ||
       stepperType == "SDIRK 2 Stage 3rd order" ||
@@ -128,6 +128,7 @@ private:
       stepperType == "SDIRK 5 Stage 4th order" ||
       stepperType == "SDIRK 5 Stage 5th order" ||
       stepperType == "SDIRK 2(1) Pair" ||
+      stepperType == "RK Trapezoidal Rule" || stepperType == "RK Crank-Nicolson" ||
       stepperType == "General DIRK"
       )
       return rcp(new StepperDIRK<Scalar>(model, stepperType, stepperPL));
@@ -176,7 +177,8 @@ private:
         Teuchos::VerboseObjectBase::getDefaultOStream();
       Teuchos::OSTab ostab(out,1,"StepperFactory::createStepper");
       *out
-      << "Unknown Stepper Type!  Here is a list of available Steppers.\n"
+      << "Unknown Stepper Type!  ('"+stepperType+"').\n"
+      << "Here is a list of available Steppers.\n"
       << "  One-Step Methods:\n"
       << "    'Forward Euler'\n"
       << "    'Backward Euler'\n"
@@ -198,13 +200,14 @@ private:
       << "    'RK Explicit 3 Stage 3rd order'\n"
       << "    'RK Explicit 3 Stage 3rd order TVD'\n"
       << "    'RK Explicit 3 Stage 3rd order by Heun'\n"
-      << "    'RK Explicit 2 Stage 2nd order by Runge'\n"
-      << "    'RK Explicit Trapezoidal'\n"
+      << "    'RK Explicit Midpoint'\n"
+      << "    'RK Explicit Trapezoidal' or 'Heuns Method'\n"
       << "    'Bogacki-Shampine 3(2) Pair'\n"
       << "    'General ERK'\n"
       << "  Implicit Runge-Kutta Methods:\n"
       << "    'RK Backward Euler'\n"
       << "    'IRK 1 Stage Theta Method'\n"
+      << "    'RK Implicit Midpoint'\n"
       << "    'SDIRK 1 Stage 1st order'\n"
       << "    'SDIRK 2 Stage 2nd order'\n"
       << "    'SDIRK 2 Stage 3rd order'\n"
@@ -213,6 +216,8 @@ private:
       << "    'SDIRK 3 Stage 4th order'\n"
       << "    'SDIRK 5 Stage 4th order'\n"
       << "    'SDIRK 5 Stage 5th order'\n"
+      << "    'SDIRK 2(1) Pair'\n"
+      << "    'RK Trapezoidal Rule' or 'RK Crank-Nicolson'\n"
       << "    'General DIRK'\n"
       << "  Implicit-Explicit (IMEX) Methods:\n"
       << "    'IMEX RK 1st order'\n"

@@ -9,7 +9,7 @@
 #ifndef Tempus_StepperExplicitRK_impl_hpp
 #define Tempus_StepperExplicitRK_impl_hpp
 
-#include "Tempus_RKButcherTableauBuilder.hpp"
+#include "Tempus_RKButcherTableauFactory.hpp"
 #include "Tempus_RKButcherTableau.hpp"
 #include "Teuchos_VerboseObjectParameterListHelpers.hpp"
 #include "Thyra_VectorStdOps.hpp"
@@ -18,9 +18,9 @@
 namespace Tempus {
 
 template<class Scalar>
-StepperExplicitRK<Scalar>::StepperExplicitRK()
+StepperExplicitRK<Scalar>::StepperExplicitRK(std::string stepperType)
 {
-  this->setTableau();
+  this->setTableau(stepperType);
   this->setParameterList(Teuchos::null);
   this->modelWarning();
 }
@@ -30,7 +30,7 @@ StepperExplicitRK<Scalar>::StepperExplicitRK(
   const Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> >& appModel,
   Teuchos::RCP<Teuchos::ParameterList>                      pList)
 {
-  this->setTableau(pList);
+  this->setTableauPL(pList);
   this->setParameterList(pList);
 
   if (appModel == Teuchos::null) {
@@ -82,7 +82,7 @@ Scalar StepperExplicitRK<Scalar>::getInitTimeStep(
 {
 
    Scalar dt = Scalar(1.0e+99);
-   if (!this->stepperPL_->template get<bool>("Use Embedded")) return dt;
+   if (!this->stepperPL_->template get<bool>("Use Embedded", false)) return dt;
 
    Teuchos::RCP<SolutionState<Scalar> > currentState=sh->getCurrentState();
    Teuchos::RCP<SolutionStateMetaData<Scalar> > metaData = currentState->getMetaData();
@@ -154,7 +154,7 @@ Scalar StepperExplicitRK<Scalar>::getInitTimeStep(
    Scalar max_d1_d2 = std::max(d1, d2);
    Scalar h1 = std::pow((0.01/max_d1_d2),(1.0/(order+1)));
 
-   // f) propse starting step size
+   // f) propose starting step size
    dt = std::min(100*dt, h1);
    return dt;
 }
@@ -162,40 +162,35 @@ Scalar StepperExplicitRK<Scalar>::getInitTimeStep(
 template<class Scalar>
 void StepperExplicitRK<Scalar>::setTableau(std::string stepperType)
 {
-  if (stepperType == "") {
-    this->setTableau();
-  } else {
-    Teuchos::RCP<const RKButcherTableau<Scalar> > ERK_ButcherTableau =
-      createRKBT<Scalar>(stepperType, this->stepperPL_);
-    this->setTableau(ERK_ButcherTableau);
-  }
+  Teuchos::RCP<RKButcherTableau<Scalar> > ERK_ButcherTableau =
+    createRKButcherTableau<Scalar>(stepperType);
+  this->setTableau(ERK_ButcherTableau);
 }
 
 template<class Scalar>
-void StepperExplicitRK<Scalar>::setTableau(
+void StepperExplicitRK<Scalar>::setTableauPL(
   Teuchos::RCP<Teuchos::ParameterList> pList)
 {
   if (pList == Teuchos::null) {
     // Create default parameters if null, otherwise keep current parameters.
-    if (this->stepperPL_ == Teuchos::null)
-      this->stepperPL_ = this->getDefaultParameters();
+    if (this->stepperPL_ == Teuchos::null) this->stepperPL_ =
+      Teuchos::rcp_const_cast<Teuchos::ParameterList>(this->getValidParameters());
   } else {
     this->stepperPL_ = pList;
   }
 
-  std::string stepperType =
-    this->stepperPL_->template get<std::string>("Stepper Type",
-                                                "RK Explicit 4 Stage");
-  Teuchos::RCP<const RKButcherTableau<Scalar> > ERK_ButcherTableau =
-    createRKBT<Scalar>(stepperType, this->stepperPL_);
+  Teuchos::RCP<RKButcherTableau<Scalar> > ERK_ButcherTableau =
+    createRKButcherTableau<Scalar>(this->stepperPL_);
   this->setTableau(ERK_ButcherTableau);
 }
 
 template<class Scalar>
 void StepperExplicitRK<Scalar>::setTableau(
-  Teuchos::RCP<const RKButcherTableau<Scalar> > ERK_ButcherTableau)
+  Teuchos::RCP<RKButcherTableau<Scalar> > ERK_ButcherTableau)
 {
   ERK_ButcherTableau_ = ERK_ButcherTableau;
+  this->stepperPL_ = Teuchos::rcp_const_cast<Teuchos::ParameterList>(
+    ERK_ButcherTableau_->getParameterList());
 
   TEUCHOS_TEST_FOR_EXCEPTION(
     ERK_ButcherTableau_->isImplicit() == true, std::logic_error,
@@ -252,7 +247,7 @@ void StepperExplicitRK<Scalar>::initialize()
     "Error - Need to set the model, setModel(), before calling "
     "StepperExplicitRK::initialize()\n");
 
-  this->setTableau(this->stepperPL_);
+  this->setTableauPL(this->stepperPL_);
   this->setParameterList(this->stepperPL_);
   this->setObserver();
 
@@ -448,13 +443,14 @@ void StepperExplicitRK<Scalar>::setParameterList(
 {
   if (pList == Teuchos::null) {
     // Create default parameters if null, otherwise keep current parameters.
-    if (this->stepperPL_ == Teuchos::null)
-      this->stepperPL_ = this->getDefaultParameters();
+    if (this->stepperPL_ == Teuchos::null) this->stepperPL_ =
+      Teuchos::rcp_const_cast<Teuchos::ParameterList>(this->getValidParameters());
   } else {
     this->stepperPL_ = pList;
   }
-  // Can not validate because of optional Parameters.
   this->stepperPL_->validateParametersAndSetDefaults(*this->getValidParameters(),0);
+
+  ERK_ButcherTableau_->setParameterList(this->stepperPL_);
 }
 
 
@@ -464,33 +460,11 @@ StepperExplicitRK<Scalar>::getValidParameters() const
 {
   Teuchos::RCP<Teuchos::ParameterList> pl = Teuchos::parameterList();
   if (ERK_ButcherTableau_ == Teuchos::null) {
-    auto ERK_ButcherTableau =
-      createRKBT<Scalar>("RK Explicit 4 Stage", Teuchos::null);
-    pl->setParameters(*(ERK_ButcherTableau->getValidParameters()));
+    auto tableau = createRKButcherTableau<Scalar>("RK Explicit 4 Stage");
+    pl->setParameters( *(tableau->getValidParameters()));
   } else {
-    pl->setParameters(*(ERK_ButcherTableau_->getValidParameters()));
+    pl->setParameters( *(ERK_ButcherTableau_->getValidParameters()));
   }
-
-  getValidParametersBasic(pl);
-  pl->set<std::string>("Initial Condition Consistency", "Consistent");
-  pl->set<bool>("Use Embedded", false,
-    "'Whether to use Embedded Stepper (if available) or not\n"
-    "  'true' - Stepper will compute embedded solution and is adaptive.\n"
-    "  'false' - Stepper is not embedded(adaptive).\n");
-  return pl;
-}
-
-
-template<class Scalar>
-Teuchos::RCP<Teuchos::ParameterList>
-StepperExplicitRK<Scalar>::getDefaultParameters() const
-{
-  using Teuchos::RCP;
-  using Teuchos::ParameterList;
-  using Teuchos::rcp_const_cast;
-
-  RCP<ParameterList> pl =
-    rcp_const_cast<ParameterList>(this->getValidParameters());
 
   return pl;
 }

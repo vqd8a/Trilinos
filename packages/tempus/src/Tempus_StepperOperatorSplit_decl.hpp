@@ -200,6 +200,9 @@ public:
   virtual void createSubSteppers(
     std::vector<Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> > > appModels);
 
+  virtual Teuchos::RCP<const Teuchos::ParameterList> getParameterList() const
+  { return stepperPL_; }
+
 protected:
 
   Teuchos::RCP<Teuchos::ParameterList>                stepperPL_;

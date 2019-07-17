@@ -262,23 +262,24 @@ void StepperImplicit<Scalar>::setSolver(
 
   std::string solverName = stepperPL_->get<std::string>("Solver Name");
   if (is_null(solverPL)) {
-    if ( stepperPL_->isSublist(solverName) )
+    if ( stepperPL_->isSublist(solverName) ) {
       solverPL = Teuchos::sublist(stepperPL_, solverName, true);
-    else
+    } else {
       solverPL = defaultSolverParameters();
+      solverName = solverPL->name();
+      stepperPL_->set("Solver Name", solverName);
+      stepperPL_->set(solverName, *solverPL);      // Add sublist
+    }
   }
 
-  solverName = solverPL->name();
-  stepperPL_->set("Solver Name", solverName);
-  stepperPL_->set(solverName, *solverPL);      // Add sublist
   RCP<ParameterList> noxPL = Teuchos::sublist(solverPL, "NOX", true);
-
   solver_ = rcp(new Thyra::NOXNonlinearSolver());
   solver_->setParameterList(noxPL);
 
   TEUCHOS_TEST_FOR_EXCEPTION(wrapperModel_ == Teuchos::null, std::logic_error,
        "Error - StepperImplicit<Scalar>::setSolver() wrapperModel_ is unset!\n"
     << "  Should call setModel(...) first.\n");
+
   solver_->setModel(wrapperModel_);
 }
 

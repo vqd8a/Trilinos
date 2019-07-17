@@ -53,8 +53,8 @@
       <Parameter name="Initial Condition Consistency" type="string" value="None"/>
       <Parameter name="Initial Condition Consistency Check" type="bool" value="false"/>
 
-      <Parameter name="Zero Initial Guess" type="bool" value="0"/>
       <Parameter name="Solver Name"    type="string" value="Default Solver"/>
+      <Parameter name="Zero Initial Guess" type="bool" value="0"/>
       <Parameter name="Start Up Stepper Name" type="string" value="Default Start Up Stepper"/>
 
       <ParameterList name="Default Solver">
@@ -112,9 +112,8 @@
         <Parameter name="Use FSAL"       type="bool" value="false"/>
         <Parameter name="Initial Condition Consistency" type="string" value="None"/>
         <Parameter name="Initial Condition Consistency Check" type="bool" value="false"/>
-        <Parameter name="Zero Initial Guess" type="bool" value="0"/>
         <Parameter name="Solver Name"    type="string" value="Default Solver"/>
-        <Parameter name="Start Up Stepper Name" type="string" value="Default Start Up Stepper"/>
+        <Parameter name="Zero Initial Guess" type="bool" value="0"/>
 
         <ParameterList name="Default Solver">
           <ParameterList name="NOX">

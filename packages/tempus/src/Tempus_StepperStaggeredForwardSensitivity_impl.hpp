@@ -75,6 +75,7 @@ setModel(
     stateStepper_ = sf->createStepper(stepperPL_, appModel);
   else
     stateStepper_->setModel(appModel);
+
   if (sensitivityStepper_ == Teuchos::null)
     sensitivityStepper_ = sf->createStepper(stepperPL_, fsa_model_);
   else
@@ -324,9 +325,10 @@ setParameterList(
 {
   if (pList == Teuchos::null) {
     // Create default parameters if null, otherwise keep current parameters.
-    if (stepperPL_ == Teuchos::null) stepperPL_ = this->getDefaultParameters();
+    if (this->stepperPL_ == Teuchos::null) this->stepperPL_ =
+      Teuchos::rcp_const_cast<Teuchos::ParameterList>(this->getValidParameters());
   } else {
-    stepperPL_ = pList;
+    this->stepperPL_ = pList;
   }
   // Can not validate because of optional Parameters (e.g., Solver Name).
   //stepperPL_->validateParametersAndSetDefaults(*this->getValidParameters());
@@ -339,15 +341,6 @@ StepperStaggeredForwardSensitivity<Scalar>::
 getValidParameters() const
 {
   return stateStepper_->getValidParameters();
-}
-
-
-template<class Scalar>
-Teuchos::RCP<Teuchos::ParameterList>
-StepperStaggeredForwardSensitivity<Scalar>::
-getDefaultParameters() const
-{
-  return stateStepper_->getDefaultParameters();
 }
 
 
@@ -378,7 +371,7 @@ setParams(
   Teuchos::RCP<Teuchos::ParameterList> const& spList)
 {
   if (pList == Teuchos::null)
-    stepperPL_ = this->getDefaultParameters();
+    stepperPL_ = Teuchos::rcp_const_cast<Teuchos::ParameterList>(this->getValidParameters());
   else
     stepperPL_ = pList;
 

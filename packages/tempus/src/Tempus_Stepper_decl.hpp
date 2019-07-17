@@ -120,7 +120,6 @@ public:
     virtual Scalar getOrderMax() const = 0;
     virtual Scalar getInitTimeStep(
       const Teuchos::RCP<SolutionHistory<Scalar> >& solutionHistory) const = 0;
-    virtual Teuchos::RCP<Teuchos::ParameterList> getDefaultParameters() const=0;
 
     virtual bool isExplicit() const = 0;
     virtual bool isImplicit() const = 0;
@@ -140,9 +139,10 @@ public:
     virtual void setICConsistencyCheck(bool c) = 0;
     virtual bool getICConsistencyCheck() const = 0;
 
-  //@}
+    /// Warn that Stepper is being constructed without a ModelEvaluator.
+    virtual void modelWarning() const;
 
-  virtual void modelWarning() const;
+  //@}
 
   /// \name Functions for Steppers with subSteppers (e.g., OperatorSplit)
   //@{
@@ -154,8 +154,9 @@ public:
 
 /// \name Helper functions
 //@{
-  /// Provides basic ParameterList entries for steppers.
-  void getValidParametersBasic(Teuchos::RCP<Teuchos::ParameterList> pl);
+  /// Provide basic parameters to Steppers.
+  void getValidParametersBasic(
+    Teuchos::RCP<Teuchos::ParameterList> pl, std::string description);
 
   /// Validate that the model supports explicit ODE evaluation, f(x,t) [=xdot]
   /** Currently the convention to evaluate f(x,t) is to set xdot=null!

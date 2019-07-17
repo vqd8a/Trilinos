@@ -330,8 +330,8 @@ void StepperNewmarkExplicitAForm<Scalar>::setParameterList(
 {
   if (pList == Teuchos::null) {
     // Create default parameters if null, otherwise keep current parameters.
-    if (this->stepperPL_ == Teuchos::null)
-      this->stepperPL_ = this->getDefaultParameters();
+    if (this->stepperPL_ == Teuchos::null) this->stepperPL_ =
+      Teuchos::rcp_const_cast<Teuchos::ParameterList>(this->getValidParameters());
   } else {
     this->stepperPL_ = pList;
   }
@@ -363,27 +363,12 @@ StepperNewmarkExplicitAForm<Scalar>::getValidParameters() const
   pl->setName("Default Stepper - " + this->description());
   pl->set<std::string>("Stepper Type", "Newmark Explicit a-Form",
                        "'Stepper Type' must be 'Newmark Explicit a-Form'.");
-  getValidParametersBasic(pl);
+  getValidParametersBasic(pl, this->description());
   pl->set<bool>("Use FSAL", true);
   pl->set<std::string>("Initial Condition Consistency", "Consistent");
   pl->sublist("Newmark Explicit Parameters", false, "");
   pl->sublist("Newmark Explicit Parameters", false, "").set("Gamma",
                0.5, "Newmark Explicit parameter");
-
-  return pl;
-}
-
-
-template<class Scalar>
-Teuchos::RCP<Teuchos::ParameterList>
-StepperNewmarkExplicitAForm<Scalar>::getDefaultParameters() const
-{
-  using Teuchos::RCP;
-  using Teuchos::ParameterList;
-  using Teuchos::rcp_const_cast;
-
-  RCP<ParameterList> pl =
-    rcp_const_cast<ParameterList>(this->getValidParameters());
 
   return pl;
 }
