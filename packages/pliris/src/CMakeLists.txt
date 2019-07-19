@@ -33,21 +33,21 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 # Core files
 #
 
-APPEND_SET(HEADERS
-  Pliris_ConfigDefs.h
-  )
+#APPEND_SET(HEADERS
+#  Pliris_ConfigDefs.h
+#  )
 
 #
 # Util files
 #
 
-APPEND_SET(HEADERS
-  PlirisVersion.h
-  )
+#APPEND_SET(HEADERS
+#  PlirisVersion.h
+#  )
 
-APPEND_SET(SOURCES
-  PlirisVersion.cpp
-  )
+#APPEND_SET(SOURCES
+#  PlirisVersion.cpp
+#  )
 
 IF (TPL_ENABLE_MPI)
   #
@@ -57,36 +57,17 @@ IF (TPL_ENABLE_MPI)
   APPEND_SET(HEADERS
     block.h
     distribute.h
-    exchange_pivots.h
-    factor.h
-    forwardall.h
-    forward.h
+    factor.hpp
     pcomm.h
-    perm1.h
-    permute.h
-    permute_mat.h
-    permute_rhs.h
-    solve.h
-    vars.h
-    x_factor.h
-    x_solve.h
+    perm1.hpp
+    solve.hpp
     xlu_solve.h
     )
 
   APPEND_SET(SOURCES
     distribute.c
-    exchange_pivots.c
-    factor_new.c
-    forwardall.c
-    forward.c
     pcomm.c
-    permute.c
-    permute_mat.c
-    permute_rhs.c
-    solve.c
-    x_factor.c
-    xlu_solve_new.c
-    x_solve.c
+    xlu_solve_new.cpp
     )
 
   #
@@ -94,36 +75,36 @@ IF (TPL_ENABLE_MPI)
   #
 
   APPEND_SET(HEADERS
-    BLAS_prototypes.h
-    cblassp.h
-    dblassp.h
+#    BLAS_prototypes_cpp.hpp
+#    cblassp.h
+#    dblassp.h
     defines.h
-    extern_vars.h
+#    extern_vars.h
     macros.h
-    mytime.h
-    sblassp.h
-    zblassp.h
+    mytime.hpp
+#    sblassp.h
+#    zblassp.h
     )
 
-  APPEND_SET(SOURCES
-    clean_code.c
-    time.c
-    )
+#  APPEND_SET(SOURCES
+#    clean_code.c
+#    time.c
+#    )
 
 # this is conditional on epetra in the makefile.am, however,
 # epetra is a required dependency of pliris so it doesn't make
 # sence to have this be conditional on something we must have
 # to compile at all
 
-  IF(Pliris_ENABLE_DREAL)
-    APPEND_SET(HEADERS
-      Pliris.h
-      )
-
-    APPEND_SET(SOURCES
-      Pliris.cpp
-      )
-  ENDIF()
+#  IF(Pliris_ENABLE_DREAL)
+#    APPEND_SET(HEADERS
+#      Pliris.h
+#      )
+#
+#    APPEND_SET(SOURCES
+#      Pliris.cpp
+#      )
+#  ENDIF()
 
 
 ENDIF()
@@ -143,6 +124,18 @@ ENDIF()
 IF(Pliris_ENABLE_ZCPLX)
   MESSAGE("     Building the Z Complex library")
   ADD_DEFINITIONS(-DZCPLX)
+  IF(Pliris_ENABLE_TIMING)
+    MESSAGE("     ... with timing")
+    ADD_DEFINITIONS(-DGET_TIMING)
+  ENDIF()
+  IF(Pliris_ENABLE_CUDAHOSTPINNED)
+    MESSAGE("     ... use Cuda Host Pinned memory for MPI")
+    ADD_DEFINITIONS(-DCUDA_HOST_PINNED_MPI)
+  ENDIF()
+  IF(Pliris_ENABLE_USEDEEPCOPY)
+    MESSAGE("     ... use Kokkos::deep_copy for BLAS copy")
+    ADD_DEFINITIONS(-DUSE_DEEPCOPY)
+  ENDIF()
   TRIBITS_ADD_LIBRARY(
     zpliris
     HEADERS ${HEADERS}
@@ -152,6 +145,18 @@ IF(Pliris_ENABLE_ZCPLX)
 ELSEIF(Pliris_ENABLE_SCPLX)
   MESSAGE("     Building the S Complex library")
   ADD_DEFINITIONS(-DSCPLX)
+  IF(Pliris_ENABLE_TIMING)
+    MESSAGE("     ... with timing")
+    ADD_DEFINITIONS(-DGET_TIMING)
+  ENDIF()
+  IF(Pliris_ENABLE_CUDAHOSTPINNED)
+    MESSAGE("     ... use Cuda Host Pinned memory for MPI")
+    ADD_DEFINITIONS(-DCUDA_HOST_PINNED_MPI)
+  ENDIF()
+  IF(Pliris_ENABLE_USEDEEPCOPY)
+    MESSAGE("     ... use Kokkos::deep_copy for BLAS copy")
+    ADD_DEFINITIONS(-DUSE_DEEPCOPY)
+  ENDIF()
   TRIBITS_ADD_LIBRARY(
     cpliris
     HEADERS ${HEADERS}
@@ -161,6 +166,18 @@ ELSEIF(Pliris_ENABLE_SCPLX)
 ELSEIF(Pliris_ENABLE_SREAL)
   MESSAGE("     Building the single precision library")
   ADD_DEFINITIONS(-DSREAL)
+  IF(Pliris_ENABLE_TIMING)
+    MESSAGE("     ... with timing")
+    ADD_DEFINITIONS(-DGET_TIMING)
+  ENDIF()
+  IF(Pliris_ENABLE_CUDAHOSTPINNED)
+    MESSAGE("     ... use Cuda Host Pinned memory for MPI")
+    ADD_DEFINITIONS(-DCUDA_HOST_PINNED_MPI)
+  ENDIF()
+  IF(Pliris_ENABLE_USEDEEPCOPY)
+    MESSAGE("     ... use Kokkos::deep_copy for BLAS copy")
+    ADD_DEFINITIONS(-DUSE_DEEPCOPY)
+  ENDIF()
   TRIBITS_ADD_LIBRARY(
     spliris
     HEADERS ${HEADERS}
@@ -170,6 +187,18 @@ ELSEIF(Pliris_ENABLE_SREAL)
 ELSEIF(Pliris_ENABLE_DREAL)
   MESSAGE("     Building the double precision(default) library")
   ADD_DEFINITIONS(-DDREAL)
+  IF(Pliris_ENABLE_TIMING)
+    MESSAGE("     ... with timing")
+    ADD_DEFINITIONS(-DGET_TIMING)
+  ENDIF()
+  IF(Pliris_ENABLE_CUDAHOSTPINNED)
+    MESSAGE("     ... use Cuda Host Pinned memory for MPI")
+    ADD_DEFINITIONS(-DCUDA_HOST_PINNED_MPI)
+  ENDIF()
+  IF(Pliris_ENABLE_USEDEEPCOPY)
+    MESSAGE("     ... use Kokkos::deep_copy for BLAS copy")
+    ADD_DEFINITIONS(-DUSE_DEEPCOPY)
+  ENDIF()
   TRIBITS_ADD_LIBRARY(
     dpliris
     HEADERS ${HEADERS}

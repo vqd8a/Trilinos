@@ -41,25 +41,85 @@
 //@HEADER
 */
 
-#ifndef __XLUSOLVEH__
-#define __XLUSOLVEH__
 
+#ifndef __MYTIME_HPP__
+#define __MYTIME_HPP__
+
+#include <stdio.h>
+#include <mpi.h>
 #include "defines.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+double get_seconds(double start)
+{
+    double time;		/* total seconds */
+    time = MPI_Wtime();
+    time = time - start;
 
-
-void XLU_SOLVE_ (DATA_TYPE *, int *, int *, int *, double *);
-
-//void perm1_(DATA_TYPE *, int *);
-
-//double seconds_(double *);
-
-
-#ifdef __cplusplus
+    return (time);
 }
-#endif
+
+/*
+** Exchange and calculate average timing information
+**
+** secs:        number of ticks for this processor
+** type:        type of message to collect
+*/
+
+//double timing(double secs, int type)
+//{
+//
+//    extern int me;		/* current processor number */
+//    extern int nprocs_cube;
+//    double avgtime;
+//
+//
+//    struct {
+//      double val;
+//      int proc;
+//    } max_in, max_out;
+//
+//    max_in.val = secs;
+//    max_in.proc = me;
+//    MPI_Allreduce(&max_in,&max_out,1,MPI_DOUBLE_INT,MPI_MAXLOC,MPI_COMM_WORLD);
+//
+//    MPI_Allreduce(&secs,&avgtime,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+//    avgtime /= nprocs_cube;
+//
+//    if (me == 0) {
+//	fprintf(stderr, "%.4f (avg), %.4f (max on processor %d).\n",
+//		avgtime, max_out.val, max_out.proc);
+//    }
+//
+//    return avgtime;
+//}
+
+void showtime(const char *label, double *value)
+{
+
+    extern int me;		/* current processor number */
+    extern int nprocs_cube;
+
+    double avgtime;
+
+    struct {
+      double val;
+      int proc;
+    } max_in, max_out, min_in, min_out;
+    max_in.val = *value;
+    max_in.proc = me;
+    MPI_Allreduce(&max_in,&max_out,1,MPI_DOUBLE_INT,MPI_MAXLOC,MPI_COMM_WORLD);
+    min_in.val = *value;
+    min_in.proc = me;
+    MPI_Allreduce(&min_in,&min_out,1,MPI_DOUBLE_INT,MPI_MINLOC,MPI_COMM_WORLD);
+
+    MPI_Allreduce(value,&avgtime,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+
+    avgtime /= nprocs_cube;
+
+    if (me == 0) {
+      fprintf(stderr, "%s = %.4f (min, on proc %d), %.4f (avg), %.4f (max, on proc %d).\n",
+		      label,min_out.val,min_out.proc,avgtime, max_out.val,max_out.proc);
+    }
+  }
 
 #endif
