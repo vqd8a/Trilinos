@@ -6,8 +6,8 @@
 /* Define if you are using gnumake - this will shorten your link lines. */
 #cmakedefine HAVE_GNUMAKE
 
-/* Define if want to build with epetra enabled */
-#cmakedefine HAVE_HAVE_EPETRA
+/* Define if want to build with kokkoskernels enabled */
+#cmakedefine HAVE_HAVE_KOKKOSKERNELS
 
 /* Define if want to build libcheck */
 #cmakedefine HAVE_LIBCHECK

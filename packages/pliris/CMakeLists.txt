@@ -30,6 +30,21 @@ TRIBITS_ADD_OPTION_AND_DEFINE(${PACKAGE_NAME}_ENABLE_SREAL
   "Set reals to single precision."
   OFF )
 
+TRIBITS_ADD_OPTION_AND_DEFINE(${PACKAGE_NAME}_ENABLE_TIMING
+  GET_TIMING
+  "Enable timing."
+  OFF )
+
+TRIBITS_ADD_OPTION_AND_DEFINE(${PACKAGE_NAME}_ENABLE_CUDAHOSTPINNED
+  CUDA_HOST_PINNED_MPI
+  "Use Cuda Host Pinned memory for MPI."
+  OFF )
+
+TRIBITS_ADD_OPTION_AND_DEFINE(${PACKAGE_NAME}_ENABLE_USEDEEPCOPY
+  USE_DEEPCOPY
+  "Use Kokkos::deep_copy for BLAS copy."
+  OFF )
+
 #
 # C) Add the libraries, tests, and examples
 #

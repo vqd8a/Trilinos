@@ -61,6 +61,7 @@ IF (TPL_ENABLE_MPI)
     pcomm.h
     perm1.hpp
     solve.hpp
+    vars.hpp
     xlu_solve.h
     )
 
