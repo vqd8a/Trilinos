@@ -53,9 +53,8 @@
 #include <KokkosBlas1_axpby.hpp>
 #include <KokkosBlas1_nrm2.hpp>
 #include <KokkosBlas2_gemv.hpp>
-#include "flops.h"
-#include "Pliris.hpp"
-#include "lin_solve.hpp"
+#include <Pliris.hpp>
+//#include "flops.h"
 
 #ifdef DREAL
 #define MPI_VALUE_TYPE MPI_DOUBLE 
@@ -175,16 +174,16 @@ int main(int argc, char *argv[])
 
   // Get Info to build the matrix on a processor
 
-  Pliris_new::GetDistribution( &nprocs_row,
-                               &matrix_size,
-                               &nrhs,
-                               &my_rows,
-                               &my_cols,
-                               &my_first_row,
-                               &my_first_col,
-                               &my_rhs,
-                               &my_row,
-                               &my_col );
+  Pliris::GetDistribution( &nprocs_row,
+                           &matrix_size,
+                           &nrhs,
+                           &my_rows,
+                           &my_cols,
+                           &my_first_row,
+                           &my_first_col,
+                           &my_rhs,
+                           &my_row,
+                           &my_col );
 
   //   Define a new communicator
 
@@ -292,7 +291,7 @@ int main(int argc, char *argv[])
   if( rank == 0 )
     std::cout << " ****   Beginning Matrix Solve   ****" << std::endl;
 
-  linearAlgebra::lin_solve( A, my_rows, my_cols, matrix_size, nprocs_row, nrhs, &secs);
+  Pliris::FactorSolve (A, my_rows, my_cols, &matrix_size, &nprocs_row, &nrhs, &secs);
 
   if( rank == 0) {
     std::cout << " ----  Solution time  ----   " << secs << "  in secs. " << std::endl;
