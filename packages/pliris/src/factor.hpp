@@ -166,7 +166,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
   int sav_col_i, sav_col_j, sav_piv_row_i, sav_piv_row_j, act_piv_row_i, piv_row_i; //KK
   int cur_col1_row_i, piv_col1_row_i; //KK
 
-  int dest,ringdist,rdist;
+  int /*dest,*/ringdist,rdist;
   long type,bytes;
 
 
@@ -203,7 +203,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 
 #ifdef GET_TIMING
   double updatetime,colupdtime,rowupdtime,scaltime;
-  double xpivmsgtime,bcastpivstime,bcastpivrtime,bcastcolstime,bcastcolrtime,bcastcolwtime,bcastrowtime,sendrowtime,recvrowtime;
+  double xpivmsgtime,bcastpivstime,bcastpivrtime,bcastcolstime,bcastcolrtime,bcastrowtime,sendrowtime,recvrowtime;
   double copycoltime,copyrowtime,copyrow1time,copypivrowtime,copypivrow1time,pivotswaptime;
   double t1,t2;
   double msgtime,copytime,dgemmtime,totalfactortime;
@@ -285,7 +285,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
   update_i=0; update_j=0; //KK
 
 #ifdef GET_TIMING
-  xpivmsgtime=bcastpivstime=bcastpivrtime=bcastcolstime=bcastcolrtime=bcastcolwtime=bcastrowtime=sendrowtime=recvrowtime=0.0;
+  xpivmsgtime=bcastpivstime=bcastpivrtime=bcastcolstime=bcastcolrtime=bcastrowtime=sendrowtime=recvrowtime=0.0;
   copycoltime=copyrowtime=copyrow1time=copypivrowtime=copypivrow1time=pivotswaptime=0.0;
   updatetime=colupdtime=rowupdtime=scaltime=0.0;
   iamaxtime=getlocalpivtime=localpivtime=0.0;
@@ -555,7 +555,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #ifdef GET_TIMING
       t1 = MPI_Wtime();
 #endif
-      bytes = 0; dest = -1; type = LUPIVROWTYPE+j;
+      bytes = 0; /*dest = -1;*/ type = LUPIVROWTYPE+j;
       bytes=4;
       bytes = sizeof(gpivot_row);
       MPI_Recv(&gpivot_row,bytes,MPI_BYTE,MPI_ANY_SOURCE,type,MPI_COMM_WORLD,&msgstatus);

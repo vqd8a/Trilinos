@@ -56,19 +56,18 @@ IF (TPL_ENABLE_MPI)
 
   APPEND_SET(HEADERS
     block.h
-    distribute.h
+    distribute.hpp
     factor.hpp
     pcomm.h
     perm1.hpp
     solve.hpp
     vars.hpp
-    xlu_solve.h
+    xlu_solve.hpp
+    Pliris.hpp
     )
 
   APPEND_SET(SOURCES
-    distribute.c
     pcomm.c
-    xlu_solve_new.cpp
     )
 
   #
@@ -76,37 +75,10 @@ IF (TPL_ENABLE_MPI)
   #
 
   APPEND_SET(HEADERS
-#    BLAS_prototypes_cpp.hpp
-#    cblassp.h
-#    dblassp.h
     defines.h
-#    extern_vars.h
     macros.h
     mytime.hpp
-#    sblassp.h
-#    zblassp.h
     )
-
-#  APPEND_SET(SOURCES
-#    clean_code.c
-#    time.c
-#    )
-
-# this is conditional on epetra in the makefile.am, however,
-# epetra is a required dependency of pliris so it doesn't make
-# sence to have this be conditional on something we must have
-# to compile at all
-
-#  IF(Pliris_ENABLE_DREAL)
-#    APPEND_SET(HEADERS
-#      Pliris.h
-#      )
-#
-#    APPEND_SET(SOURCES
-#      Pliris.cpp
-#      )
-#  ENDIF()
-
 
 ENDIF()
 
