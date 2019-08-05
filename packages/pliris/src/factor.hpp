@@ -52,15 +52,14 @@
 #include "defines.h"
 //#include "BLAS_prototypes_cpp.hpp"
 
-#include "factor.hpp"
 #include "macros.h"
 #include "pcomm.h"
 #include "mytime.hpp"
 
 #include "Kokkos_Core.hpp"
 #include "KokkosBlas1_scal.hpp"
-#include "KokkosBlas1_copy.hpp"
-#include "KokkosBlas1_iamax.hpp"
+#include "BlasWrapper_copy.hpp"
+#include "BlasWrapper_iamax.hpp"
 #include "KokkosBlas3_gemm.hpp"
 
 extern int myrow;
@@ -359,7 +358,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
         t1 = MPI_Wtime();
 #endif
         auto cur_col_view_1d = subview(ZV,Kokkos::make_pair(cur_col_i, cur_col_i+col_len),cur_col_j);
-        rel_lpivot_row = KokkosBlas::iamax(cur_col_view_1d);
+        rel_lpivot_row = BlasWrapper::iamax(cur_col_view_1d);
 #ifdef GET_TIMING
         iamaxtime += (MPI_Wtime()-t1);
 #endif
@@ -475,7 +474,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #ifdef USE_DEEPCOPY
       Kokkos::deep_copy (sav_col_view_1d, cur_col_view_1d);//copy: cur_col_view_1d --> sav_col_view_1d
 #else
-      KokkosBlas::copy (cur_col_view_1d, sav_col_view_1d);//copy: cur_col_view_1d --> sav_col_view_1d
+      BlasWrapper::copy (cur_col_view_1d, sav_col_view_1d);//copy: cur_col_view_1d --> sav_col_view_1d
 #endif
 
 #ifdef GET_TIMING
@@ -650,7 +649,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #ifdef USE_DEEPCOPY
         Kokkos::deep_copy (sav_row_view_1d, cur_row_view_1d);//copy: cur_row_view_1d --> sav_row_view_1d 
 #else
-        KokkosBlas::copy (cur_row_view_1d, sav_row_view_1d);//copy: cur_row_view_1d --> sav_row_view_1d
+        BlasWrapper::copy (cur_row_view_1d, sav_row_view_1d);//copy: cur_row_view_1d --> sav_row_view_1d
 #endif
         //XCOPY(colcnt, cur_col1_row_ptr, col1_stride, sav_row_ptr+row_len, one);
         auto cur_col1_row_view_1d = subview(col1_view, cur_col1_row_i, Kokkos::make_pair(0, 0+colcnt));
@@ -658,7 +657,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #ifdef USE_DEEPCOPY
         Kokkos::deep_copy (sav_row_plus_view_1d, cur_col1_row_view_1d);//copy: cur_col1_row_view_1d --> sav_row_plus_view_1d 
 #else
-        KokkosBlas::copy (cur_col1_row_view_1d, sav_row_plus_view_1d);//copy: cur_col1_row_view_1d --> sav_row_plus_view_1d
+        BlasWrapper::copy (cur_col1_row_view_1d, sav_row_plus_view_1d);//copy: cur_col1_row_view_1d --> sav_row_plus_view_1d
 #endif
 
 #ifdef GET_TIMING
@@ -728,7 +727,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #ifdef USE_DEEPCOPY
       Kokkos::deep_copy (temp_row_view_1d, piv_row_view_1d);//copy: piv_row_view_1d --> temp_row_view_1d
 #else
-      KokkosBlas::copy (piv_row_view_1d, temp_row_view_1d);//copy: piv_row_view_1d --> temp_row_view_1d
+      BlasWrapper::copy (piv_row_view_1d, temp_row_view_1d);//copy: piv_row_view_1d --> temp_row_view_1d
 #endif
 
       //XCOPY(colcnt, piv_col1_row_ptr, col1_stride, temp_row_ptr+row_len, one);
@@ -737,7 +736,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #ifdef USE_DEEPCOPY
       Kokkos::deep_copy (temp_row_plus_view_1d, piv_col1_row_view_1d);//copy: piv_col1_row_view_1d --> temp_row_plus_view_1d 
 #else
-      KokkosBlas::copy (piv_col1_row_view_1d, temp_row_plus_view_1d);//copy: piv_col1_row_view_1d --> temp_row_plus_view_1d
+      BlasWrapper::copy (piv_col1_row_view_1d, temp_row_plus_view_1d);//copy: piv_col1_row_view_1d --> temp_row_plus_view_1d
 #endif
 
 #ifdef GET_TIMING
@@ -793,7 +792,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #ifdef USE_DEEPCOPY
     Kokkos::deep_copy (sav_piv_row_view_1d, temp_row_view_1d);//copy: temp_row_view_1d --> sav_piv_row_view_1d
 #else
-    KokkosBlas::copy (temp_row_view_1d, sav_piv_row_view_1d);//copy: temp_row_view_1d --> sav_piv_row_view_1d
+    BlasWrapper::copy (temp_row_view_1d, sav_piv_row_view_1d);//copy: temp_row_view_1d --> sav_piv_row_view_1d
 #endif
 
 #ifdef GET_TIMING
@@ -872,7 +871,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #ifdef USE_DEEPCOPY
         Kokkos::deep_copy (piv_row_view_1d, sav_row_view_1d);//copy: sav_row_view_1d --> piv_row_view_1d
 #else
-        KokkosBlas::copy (sav_row_view_1d, piv_row_view_1d);//copy: sav_row_view_1d --> piv_row_view_1d
+        BlasWrapper::copy (sav_row_view_1d, piv_row_view_1d);//copy: sav_row_view_1d --> piv_row_view_1d
 #endif
 
         //XCOPY(colcnt, sav_row_ptr+row_len, one, piv_col1_row_ptr, col1_stride);
@@ -881,7 +880,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #ifdef USE_DEEPCOPY
         Kokkos::deep_copy (piv_col1_row_view_1d, sav_row_plus_view_1d);//copy: sav_row_plus_view_1d --> piv_col1_row_view_1d
 #else
-        KokkosBlas::copy (sav_row_plus_view_1d, piv_col1_row_view_1d);//copy: sav_row_plus_view_1d --> piv_col1_row_view_1d
+        BlasWrapper::copy (sav_row_plus_view_1d, piv_col1_row_view_1d);//copy: sav_row_plus_view_1d --> piv_col1_row_view_1d
 #endif
 
 #ifdef GET_TIMING
@@ -901,7 +900,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #ifdef USE_DEEPCOPY
         Kokkos::deep_copy (cur_row_view_1d, temp_row_view_1d);//copy: temp_row_view_1d --> cur_row_view_1d
 #else
-        KokkosBlas::copy (temp_row_view_1d, cur_row_view_1d);//copy: temp_row_view_1d --> cur_row_view_1d
+        BlasWrapper::copy (temp_row_view_1d, cur_row_view_1d);//copy: temp_row_view_1d --> cur_row_view_1d
 #endif
         //XCOPY(colcnt, temp_row_ptr+row_len, one, cur_col1_row_ptr, col1_stride);
         auto temp_row_plus_view_1d = subview(row3_view, Kokkos::make_pair(row_len, row_len+colcnt));  //note: temp_row_ptr -> row3.view;
@@ -909,7 +908,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #ifdef USE_DEEPCOPY
         Kokkos::deep_copy (cur_col1_row_view_1d, temp_row_plus_view_1d);//copy: temp_row_plus_view_1d --> cur_col1_row_view_1d
 #else
-        KokkosBlas::copy (temp_row_plus_view_1d, cur_col1_row_view_1d);//copy: temp_row_plus_view_1d --> cur_col1_row_view_1d
+        BlasWrapper::copy (temp_row_plus_view_1d, cur_col1_row_view_1d);//copy: temp_row_plus_view_1d --> cur_col1_row_view_1d
 #endif
 
 #ifdef GET_TIMING

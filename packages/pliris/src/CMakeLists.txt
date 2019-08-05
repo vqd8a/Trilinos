@@ -64,6 +64,10 @@ IF (TPL_ENABLE_MPI)
     vars.hpp
     xlu_solve.hpp
     Pliris.hpp
+    BlasWrapper_copy_spec.hpp
+    BlasWrapper_copy.hpp
+    BlasWrapper_iamax_spec.hpp
+    BlasWrapper_iamax.hpp
     )
 
   APPEND_SET(SOURCES
