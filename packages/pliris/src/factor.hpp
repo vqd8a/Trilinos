@@ -135,17 +135,17 @@ void factor(ZDView& ZV,                 // matrix and rhs
     int row;                    /*   pivot row number */
   } pivot;              /* pivot info and some temporary pivot infor */
 
-  int one = 1;                  /* constant for the daxpy routines */ 
-  value_type d_one = 1.0;     /* constant for the daxpy routines */ //KK
-  value_type d_min_one = -1.0;/* constant for the daxpy routines */ //KK
-  value_type d_zero = 0.0;/* constant for initializations */
+  constexpr int one = 1;                  /* constant for the daxpy routines */ 
+  value_type d_one     = static_cast<value_type>(1.0); /* constant for the daxpy routines */ //KK
+  value_type d_min_one = static_cast<value_type>(-1.0);/* constant for the daxpy routines */ //KK
+  value_type d_zero    = static_cast<value_type>(0.0); /* constant for initializations */
   
   //char transA = 'N';            /* all dgemm's don't transpose matrix A  */
   //char transB = 'N';            /* nor transpose matrix B */
   int colcnt,cols_in_blk_owned; /* number of columns stored for BLAS 3 ops */
   int c_owner,r_owner,pivot_owner;
   int col_len,row_len,length,row_size,rows_used,cols_used;
-  int rel_lpivot_row,lpivot_row;
+  int rel_lpivot_row=0,lpivot_row;
 
   ////int *sav_pivot_ptr;//Note: comment out since sav_pivot_ptr is not used
 
@@ -895,12 +895,12 @@ void factor(ZDView& ZV,                 // matrix and rhs
         /* copy from matrix and col1 */
 
         //XCOPY(row_len, temp_row_ptr, one, cur_row_ptr, mat_stride);
-        auto temp_row_view_1d = subview(row3_view, Kokkos::make_pair(0, 0+row_len));  //note: temp_row_ptr -> row3.view;
-        auto cur_row_view_1d  = subview(ZV, cur_row_i, Kokkos::make_pair(cur_row_j, cur_row_j+row_len));
+        auto tmp_row_view_1d = subview(row3_view, Kokkos::make_pair(0, 0+row_len));  //note: temp_row_ptr -> row3.view;
+        auto cur_row_view_1d = subview(ZV, cur_row_i, Kokkos::make_pair(cur_row_j, cur_row_j+row_len));
 #ifdef USE_DEEPCOPY
-        Kokkos::deep_copy (cur_row_view_1d, temp_row_view_1d);//copy: temp_row_view_1d --> cur_row_view_1d
+        Kokkos::deep_copy (cur_row_view_1d, tmp_row_view_1d);//copy: tmp_row_view_1d --> cur_row_view_1d
 #else
-        BlasWrapper::copy (temp_row_view_1d, cur_row_view_1d);//copy: temp_row_view_1d --> cur_row_view_1d
+        BlasWrapper::copy (tmp_row_view_1d, cur_row_view_1d);//copy: tmp_row_view_1d --> cur_row_view_1d
 #endif
         //XCOPY(colcnt, temp_row_ptr+row_len, one, cur_col1_row_ptr, col1_stride);
         auto temp_row_plus_view_1d = subview(row3_view, Kokkos::make_pair(row_len, row_len+colcnt));  //note: temp_row_ptr -> row3.view;

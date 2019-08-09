@@ -74,63 +74,63 @@ jdkotul@sandia.gov
 void distmat_(
                 int *nprocsr,
                 int *ncols,
-                int *nrhs,
-                int *my_rows,
-                int *my_cols,
-                int *my_first_row,
-                int *my_first_col,
-                int *my_rhs,
+                int *nrhs_,
+                int *my_rows_,
+                int *my_cols_,
+                int *my_first_row_,
+                int *my_first_col_,
+                int *my_rhs_,
                 int *my_row,
                 int *my_col)
 {
 
-    int me,nprocs;
-    int nprocs_col, nrows;
-    int nprocs_row;
+    int rank,nprocs;
+    int nprocs_col_, nrows;
+    int nprocs_row_;
 
 /*  Determine who I am and the number of processors that are being used    */
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &me) ;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank) ;
 
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 
     nrows = *ncols;
 
-    nprocs_row = *nprocsr;
+    nprocs_row_ = *nprocsr;
 
-    nprocs_col = nprocs/(*nprocsr) ;
+    nprocs_col_ = nprocs/(*nprocsr) ;
 
     /* Distribute the rows and columns   */
 
-    *my_row = me/(*nprocsr);
-    *my_col = me %(nprocs_row);
+    *my_row = rank/(*nprocsr);
+    *my_col = rank %(nprocs_row_);
 
 
-    *my_rows = nrows / nprocs_col;
+    *my_rows_ = nrows / nprocs_col_;
 
-    *my_first_row = (*my_row)*(*my_rows) +1;
+    *my_first_row_ = (*my_row)*(*my_rows_) +1;
 
-    *my_first_row = ((*my_row) > (nrows%nprocs_col)) ? *my_first_row + (nrows%nprocs_col) :
-       *my_first_row + (*my_row);
+    *my_first_row_ = ((*my_row) > (nrows%nprocs_col_)) ? *my_first_row_ + (nrows%nprocs_col_) :
+       *my_first_row_ + (*my_row);
 
-    if (*my_row < nrows % nprocs_col)
-        ++(*my_rows);
+    if (*my_row < nrows % nprocs_col_)
+        ++(*my_rows_);
 
-    *my_cols = nrows / nprocs_row;
+    *my_cols_ = nrows / nprocs_row_;
 
-    *my_first_col = (*my_col)*(*my_cols) + 1;
+    *my_first_col_ = (*my_col)*(*my_cols_) + 1;
 
-    *my_first_col = ((*my_col) > (nrows%nprocs_row)) ? *my_first_col + (nrows%nprocs_row) :
-       *my_first_col + (*my_col);
+    *my_first_col_ = ((*my_col) > (nrows%nprocs_row_)) ? *my_first_col_ + (nrows%nprocs_row_) :
+       *my_first_col_ + (*my_col);
 
-    *my_cols = *ncols / *nprocsr;
+    *my_cols_ = *ncols / *nprocsr;
     if (*my_col < *ncols % (*nprocsr))
-        ++(*my_cols);
+        ++(*my_cols_);
 
     /* Distribute the RHS per processor */
 
-    *my_rhs = *nrhs / *nprocsr;
-    if (*my_col < *nrhs % (*nprocsr)) ++(*my_rhs);
+    *my_rhs_ = *nrhs_ / *nprocsr;
+    if (*my_col < *nrhs_ % (*nprocsr)) ++(*my_rhs_);
 
 }
 

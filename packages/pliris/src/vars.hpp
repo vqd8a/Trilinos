@@ -55,7 +55,7 @@ int   max_procs;		/* max num of procs in any dimension */
 
 int   nrows_matrix;		/* number of rows in the matrix */
 int   ncols_matrix;		/* number of cols in the matrix */
-int   matrix_size;		/* order of matrix=nrows_matrix=ncols_matrix */
+//int   matrix_size;		/* order of matrix=nrows_matrix=ncols_matrix */
 
 int   my_first_row;		/* proc position in a row */
 int   my_first_col;		/* proc position in a col */
@@ -89,7 +89,7 @@ int   col1_stride;              /* stride to second dimension of col1 */
 
 int   blksz;			/* block size for BLAS 3 operations */
 int   rhs_blksz;                /* agglomeration block size for backsolve */
-int   colcnt;			/* number of columns stored for BLAS 3 ops */
+//int   colcnt;			/* number of columns stored for BLAS 3 ops */
 
 
 int  myrow,mycol;

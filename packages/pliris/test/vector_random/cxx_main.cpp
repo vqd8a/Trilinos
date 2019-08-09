@@ -75,22 +75,22 @@ int main(int argc, char *argv[])
   int name_len;
   int rank, size;
   
-  int  my_rows;
-  int  my_cols;
-  int  my_first_row;
-  int  my_first_col;
-  int  my_rhs;
+  int  myrows;
+  int  mycols;
+  int  myfirstrow;
+  int  myfirstcol;
+  int  myrhs;
   int  my_row;
   int  my_col;
-  int matrix_size;
-  int nprocs_row;
+  int  matrix_size;
+  int  nprocs_per_row;
 
   double mflops;
 
   MPI_Comm rowcomm;
 
   static int buf[4];
-  int nrhs;
+  int numrhs;
 
   int i, m, k;
 
@@ -162,11 +162,11 @@ int main(int argc, char *argv[])
 
   matrix_size = buf[0];
 
-  nprocs_row  = buf[1];
+  nprocs_per_row  = buf[1];
 
   // Example for 1 RHS
 
-  nrhs = 1;
+  numrhs = 1;
 
   if( rank == 0) {
     std::cout << " ---- Building Pliris solver ----" << std::endl;
@@ -174,14 +174,14 @@ int main(int argc, char *argv[])
 
   // Get Info to build the matrix on a processor
 
-  Pliris::GetDistribution( &nprocs_row,
+  Pliris::GetDistribution( &nprocs_per_row,
                            &matrix_size,
-                           &nrhs,
-                           &my_rows,
-                           &my_cols,
-                           &my_first_row,
-                           &my_first_col,
-                           &my_rhs,
+                           &numrhs,
+                           &myrows,
+                           &mycols,
+                           &myfirstrow,
+                           &myfirstcol,
+                           &myrhs,
                            &my_row,
                            &my_col );
 
@@ -192,19 +192,19 @@ int main(int argc, char *argv[])
   std::cout << " ------ PARALLEL Distribution Info for : ---------" <<std::endl;
 
   std::cout << "   Processor  " << rank << std::endl
-       << "    my rows  " << my_rows << std::endl
-       << "    my cols  " << my_cols << std::endl
-       << "    my rhs  " << my_rhs << std::endl
-       << "    my first col  " << my_first_col  << std::endl
-       << "    my first row  " << my_first_row << std::endl
+       << "    my rows  " << myrows << std::endl
+       << "    my cols  " << mycols << std::endl
+       << "    my rhs  " << myrhs << std::endl
+       << "    my first col  " << myfirstcol  << std::endl
+       << "    my first row  " << myfirstrow << std::endl
        << "    my_row  " << my_row << std::endl
-       << "    num procs row   " << nprocs_row << std::endl
+       << "    num procs row   " << nprocs_per_row << std::endl
        << "    my_col  " << my_col << std::endl;
 
   // Pliris example using the Kokkos Views
   Kokkos::initialize( argc, argv );
   {
-  //  Local size -- my_rows  * (my_cols + my_rhs)
+  //  Local size -- myrows  * (mycols + myrhs)
   
   typedef Kokkos::LayoutLeft Layout;
   typedef Kokkos::View<Kokkos::complex<double>**, Layout>  ViewMatrixType;
@@ -215,15 +215,15 @@ int main(int argc, char *argv[])
 
   typedef typename ViewMatrixType::value_type ScalarA;
 
-  ViewMatrixType A( "A", my_rows, my_cols + my_rhs + 6 );
+  ViewMatrixType A( "A", myrows, mycols + myrhs + 6 );
 	
   ViewMatrixType::HostMirror h_A = Kokkos::create_mirror( A );
 
   // Some temp arrays
 
-  ViewVectorType_Host temp  ( "temp", my_rows );
+  ViewVectorType_Host temp  ( "temp", myrows );
 
-  ViewVectorType_Host temp2 ( "temp2", my_rows );
+  ViewVectorType_Host temp2 ( "temp2", myrows );
 
   ViewVectorType_Host rhs   ( "rhs", matrix_size );
 
@@ -253,25 +253,25 @@ int main(int argc, char *argv[])
 
   // Sum the portion of the row that I have
 
-  for (k= 0; k < my_rows; k++) {
+  for (k= 0; k < myrows; k++) {
     temp(k) = 0;
-    for (m=0; m < my_cols; m++) {
+    for (m=0; m < mycols; m++) {
      temp(k) = temp(k) + h_A(k,m);
     }
   }
 
   // Sum to Processor 0
 
-  MPI_Allreduce(temp.data(), temp2.data(), my_rows, MPI_VALUE_TYPE, MPI_SUM, rowcomm);
+  MPI_Allreduce(temp.data(), temp2.data(), myrows, MPI_VALUE_TYPE, MPI_SUM, rowcomm);
 
   if( rank == 0 )
     std::cout << " ****   Packing RHS in Matrix   ****" << std::endl;
 
   // Now put the RHS in the appropriate position
 
-  if( my_rhs > 0 ) {
-    Kokkos::deep_copy( subview(h_A,Kokkos::ALL(),my_cols), temp2 );
-    Kokkos::deep_copy( subview(rhs,Kokkos::make_pair(my_first_row - 1, my_first_row - 1 + my_rows)), temp2 );
+  if( myrhs > 0 ) {
+    Kokkos::deep_copy( subview(h_A,Kokkos::ALL(),mycols), temp2 );
+    Kokkos::deep_copy( subview(rhs,Kokkos::make_pair(myfirstrow - 1, myfirstrow - 1 + myrows)), temp2 );
   }
 
   // Globally Sum the RHS needed for testing later
@@ -284,14 +284,14 @@ int main(int argc, char *argv[])
 
   rhs_nrm = KokkosBlas::nrm2(rhs);
 
-  Kokkos::deep_copy( subview(A,Kokkos::ALL(),my_cols), subview(h_A,Kokkos::ALL(),my_cols) );
+  Kokkos::deep_copy( subview(A,Kokkos::ALL(),mycols), subview(h_A,Kokkos::ALL(),mycols) );
 
   // Now Solve the Problem
 
   if( rank == 0 )
     std::cout << " ****   Beginning Matrix Solve   ****" << std::endl;
 
-  Pliris::FactorSolve (A, my_rows, my_cols, &matrix_size, &nprocs_row, &nrhs, &secs);
+  Pliris::FactorSolve (A, myrows, mycols, &matrix_size, &nprocs_per_row, &numrhs, &secs);
 
   if( rank == 0) {
     std::cout << " ----  Solution time  ----   " << secs << "  in secs. " << std::endl;
@@ -303,12 +303,12 @@ int main(int argc, char *argv[])
 
   // Now Check the Solution
 
-  Kokkos::deep_copy( subview(h_A,Kokkos::ALL(),my_cols), subview(A,Kokkos::ALL(),my_cols) );
+  Kokkos::deep_copy( subview(h_A,Kokkos::ALL(),mycols), subview(A,Kokkos::ALL(),mycols) );
 
   // Pack the Answer into the apropriate position
 
-  if ( my_rhs > 0) {
-    Kokkos::deep_copy( subview(tempp,Kokkos::make_pair(my_first_row - 1, my_first_row - 1 + my_rows)), subview(h_A,Kokkos::ALL(),my_cols) );
+  if ( myrhs > 0) {
+    Kokkos::deep_copy( subview(tempp,Kokkos::make_pair(myfirstrow - 1, myfirstrow - 1 + myrows)), subview(h_A,Kokkos::ALL(),mycols) );
   }
 
   // All processors get the answer
@@ -320,9 +320,9 @@ int main(int argc, char *argv[])
   ScalarA alpha = 1.0;
   ScalarA beta  = 0.0;
 
-  KokkosBlas::gemv("N", alpha, subview(h_A,Kokkos::ALL(),Kokkos::make_pair(0, my_cols)),
-                               subview(temp22,Kokkos::make_pair(my_first_col - 1, my_first_col - 1 + my_cols)),
-                         beta, subview(tempp,Kokkos::make_pair(my_first_row - 1, my_first_row - 1 + my_rows)));
+  KokkosBlas::gemv("N", alpha, subview(h_A,Kokkos::ALL(),Kokkos::make_pair(0, mycols)),
+                               subview(temp22,Kokkos::make_pair(myfirstcol - 1, myfirstcol - 1 + mycols)),
+                         beta, subview(tempp,Kokkos::make_pair(myfirstrow - 1, myfirstrow - 1 + myrows)));
 	
   MPI_Allreduce(tempp.data(), temp3.data(), matrix_size, MPI_VALUE_TYPE, MPI_SUM, MPI_COMM_WORLD);
 

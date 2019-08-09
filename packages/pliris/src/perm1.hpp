@@ -64,7 +64,6 @@ extern int nrows_matrix;       /* number of rows in the matrix */
 extern int ncols_matrix;       /* number of cols in the matrix */
 extern int my_rows;            /* num of rows I own */
 extern int my_cols;            /* num of cols I own */
-extern int my_rhs;             /* num of right hand side I own */
 
 /*  Customized zcopy  */
 template<class XView, class YView>
@@ -96,7 +95,7 @@ template<class ZDView>
 void perm1_(ZDView& ZV, int *num_my_rhs) {
 
   int i;
-  int my_rhs;
+  int my_rhs_;
 
 
   int bytes;
@@ -131,17 +130,17 @@ void perm1_(ZDView& ZV, int *num_my_rhs) {
   t2 = MPI_Wtime();
 #endif
 
-  my_rhs=*num_my_rhs;
+  my_rhs_=*num_my_rhs;
   
   typedef typename ZDView::device_type::execution_space execution_space;
   typedef typename ZDView::device_type::memory_space memory_space;
   typedef Kokkos::View<Kokkos::complex<double>*, Kokkos::LayoutLeft, memory_space>  ViewVectorType;
 					 
-  ViewVectorType temp_s     ( "temp_s", (my_rhs + 1) );
-  ViewVectorType rhs_temp   ( "rhs_temp", (my_rows*(my_rhs+1)) );
-  ViewVectorType my_rhs_temp( "my_rhs_temp", (my_rows*(my_rhs+1)) );
+  ViewVectorType temp_s     ( "temp_s", (my_rhs_ + 1) );
+  ViewVectorType rhs_temp   ( "rhs_temp", (my_rows*(my_rhs_+1)) );
+  ViewVectorType my_rhs_temp( "my_rhs_temp", (my_rows*(my_rhs_+1)) );
 
-  if (my_rhs > 0) {
+  if (my_rhs_ > 0) {
     ncols_proc1 = ncols_matrix/nprocs_row;
     ncols_proc2 = ncols_proc1;
     if (ncols_matrix%nprocs_row > 0) ncols_proc1++;
@@ -196,41 +195,41 @@ void perm1_(ZDView& ZV, int *num_my_rhs) {
 
         if( dest == me ) {
 
-         //XCOPY(my_rhs, ptr1, my_rows, (my_rhs_temp + next), one);
-         //cblas_zcopy(my_rhs, ptr1, my_rows, (my_rhs_temp + next), one);             
+         //XCOPY(my_rhs_, ptr1, my_rows, (my_rhs_temp + next), one);
+         //cblas_zcopy(my_rhs_, ptr1, my_rows, (my_rhs_temp + next), one);             
          auto sub_ZV          = subview(ZV,          ptr1_idx, Kokkos::ALL());
-         auto sub_my_rhs_temp = subview(my_rhs_temp, Kokkos::make_pair(next, next+(my_rhs + 1)));     				
-         zcopy_wr_local_index(my_rhs, sub_ZV, sub_my_rhs_temp, local_index);
+         auto sub_my_rhs_temp = subview(my_rhs_temp, Kokkos::make_pair(next, next+(my_rhs_ + 1)));     				
+         zcopy_wr_local_index(my_rhs_, sub_ZV, sub_my_rhs_temp, local_index);
 
 //#ifdef COMPLEX
-//         (*(my_rhs_temp+ next + my_rhs)).r = local_index + 0.1;
+//         (*(my_rhs_temp+ next + my_rhs_)).r = local_index + 0.1;
 //#else
-//         *(my_rhs_temp+ next + my_rhs) = local_index + 0.1;
+//         *(my_rhs_temp+ next + my_rhs_) = local_index + 0.1;
 //#endif
           change_nosend++;
 
-          next = change_nosend * (my_rhs + 1);
+          next = change_nosend * (my_rhs_ + 1);
 
         }
 
         if( dest !=me ) {
 
-          bytes = (my_rhs + 1)*sizeof(DATA_TYPE);
+          bytes = (my_rhs_ + 1)*sizeof(DATA_TYPE);
 
           //MPI_Irecv( (char *)(rhs_temp +next_s),bytes,MPI_CHAR,MPI_ANY_SOURCE,
           //      MPI_ANY_TAG,MPI_COMM_WORLD,&msgrequest);
           MPI_Irecv( (char *)(reinterpret_cast<DATA_TYPE *>(rhs_temp.data())+next_s),bytes,MPI_CHAR,MPI_ANY_SOURCE,
                 MPI_ANY_TAG,MPI_COMM_WORLD,&msgrequest);
 
-         //XCOPY(my_rhs, ptr1, my_rows, temp_s, one);
-         //cblas_zcopy(my_rhs, ptr1, my_rows, temp_s, one);
+         //XCOPY(my_rhs_, ptr1, my_rows, temp_s, one);
+         //cblas_zcopy(my_rhs_, ptr1, my_rows, temp_s, one);
          auto sub_ZV = subview(ZV, ptr1_idx, Kokkos::ALL());     				
-         zcopy_wr_local_index(my_rhs, sub_ZV, temp_s, local_index);
+         zcopy_wr_local_index(my_rhs_, sub_ZV, temp_s, local_index);
 
 //#ifdef COMPLEX
-//         (*(temp_s+my_rhs)).r = local_index + 0.1;
+//         (*(temp_s+my_rhs_)).r = local_index + 0.1;
 //#else
-//         *(temp_s+my_rhs) = local_index + 0.1;
+//         *(temp_s+my_rhs_) = local_index + 0.1;
 //#endif
 
          type = PERMTYPE+change_send;
@@ -240,7 +239,7 @@ void perm1_(ZDView& ZV, int *num_my_rhs) {
                  type,MPI_COMM_WORLD);
          change_send++;
 
-         next_s = change_send * (my_rhs+1);
+         next_s = change_send * (my_rhs_+1);
 
          MPI_Wait(&msgrequest,&msgstatus);
 
@@ -256,17 +255,17 @@ void perm1_(ZDView& ZV, int *num_my_rhs) {
     inc = 0;
     for (i = 0; i < change_send; i++) {
 //#ifdef COMPLEX
-//      local_index = (*(rhs_temp+next_s+my_rhs)).r;
+//      local_index = (*(rhs_temp+next_s+my_rhs_)).r;
 //#else
-//      local_index = *(rhs_temp +next_s+my_rhs);
+//      local_index = *(rhs_temp +next_s+my_rhs_);
 //#endif
-      //XCOPY(my_rhs,(rhs_temp + next_s),one,(vec+local_index),my_rows);
-      //cblas_zcopy(my_rhs,(rhs_temp + next_s),one,(vec+local_index),my_rows);
-      auto sub_rhs_temp = subview(rhs_temp, Kokkos::make_pair(next_s, next_s+(my_rhs + 1)));     				
-      zcopy_ld_local_index(my_rhs, sub_rhs_temp, ZV);
+      //XCOPY(my_rhs_,(rhs_temp + next_s),one,(vec+local_index),my_rows);
+      //cblas_zcopy(my_rhs_,(rhs_temp + next_s),one,(vec+local_index),my_rows);
+      auto sub_rhs_temp = subview(rhs_temp, Kokkos::make_pair(next_s, next_s+(my_rhs_ + 1)));     				
+      zcopy_ld_local_index(my_rhs_, sub_rhs_temp, ZV);
 
       inc++;
-      next_s = inc * (my_rhs+1);
+      next_s = inc * (my_rhs_+1);
     }
 
     /* Unpack my changes */
@@ -274,16 +273,16 @@ void perm1_(ZDView& ZV, int *num_my_rhs) {
     inc = 0;
     for (i = 0; i < change_nosend; i++) {
 //#ifdef COMPLEX
-//      local_index = (*(my_rhs_temp+next+my_rhs)).r;
+//      local_index = (*(my_rhs_temp+next+my_rhs_)).r;
 //#else
-//      local_index = *(my_rhs_temp+next+my_rhs);
+//      local_index = *(my_rhs_temp+next+my_rhs_);
 //#endif
-      //XCOPY(my_rhs,(my_rhs_temp + next),one,(vec+local_index),my_rows);
-      //cblas_zcopy(my_rhs,(my_rhs_temp + next),one,(vec+local_index),my_rows);
-      auto sub_my_rhs_temp = subview(my_rhs_temp, Kokkos::make_pair(next, next+(my_rhs + 1)));     				
-      zcopy_ld_local_index(my_rhs, sub_my_rhs_temp, ZV);
+      //XCOPY(my_rhs_,(my_rhs_temp + next),one,(vec+local_index),my_rows);
+      //cblas_zcopy(my_rhs_,(my_rhs_temp + next),one,(vec+local_index),my_rows);
+      auto sub_my_rhs_temp = subview(my_rhs_temp, Kokkos::make_pair(next, next+(my_rhs_ + 1)));     				
+      zcopy_ld_local_index(my_rhs_, sub_my_rhs_temp, ZV);
       inc++;
-      next = inc * (my_rhs+1);
+      next = inc * (my_rhs_+1);
     }
 
   }
