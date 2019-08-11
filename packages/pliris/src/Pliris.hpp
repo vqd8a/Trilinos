@@ -89,26 +89,26 @@ namespace Pliris {
      \param my_col(Out)  - column  number in processor mesh, 0 to the  number of processors for a row -1
     */
 
-  int GetDistribution( int* nprocs_row,
+  int GetDistribution( int* nprocs_row_,
                        int* number_of_unknowns,
-                       int* nrhs,
-                       int* my_rows,
-                       int* my_cols,
-                       int* my_first_row,
-                       int* my_first_col,
-                       int* my_rhs,
+                       int* nrhs_,
+                       int* my_rows_,
+                       int* my_cols_,
+                       int* my_first_row_,
+                       int* my_first_col_,
+                       int* my_rhs_,
                        int* my_row,
                        int* my_col ){
     // This function echoes the multiprocessor distribution of the matrix
 
-    distmat_ ( nprocs_row,
+    distmat_(  nprocs_row_,
                number_of_unknowns,
-               nrhs,
-               my_rows,
-               my_cols,
-               my_first_row,
-               my_first_col,
-               my_rhs,
+               nrhs_,
+               my_rows_,
+               my_cols_,
+               my_first_row_,
+               my_first_col_,
+               my_rhs_,
                my_row,
                my_col);
 
@@ -147,17 +147,17 @@ namespace Pliris {
 
   template<class ZDView>
   void FactorSolve( ZDView AA,
-                    int my_rows,
-                    int my_cols,
+                    int my_rows_,
+                    int my_cols_,
                     int* matrix_size,
                     int* num_procsr,
                     int* num_rhs,
                     double* secs){
-    int me;
+    int rank;
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &me) ; 
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank) ; 
 
-    printf("FactorSolve (Kokkos View interface) in rank %d -- my_rows %u , my_cols %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, *matrix_size, *num_procsr, *num_rhs);
+    printf("FactorSolve (Kokkos View interface) in rank %d -- my_rows %u , my_cols %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", rank, my_rows_, my_cols_, *matrix_size, *num_procsr, *num_rhs);
 
     lusolve_(AA,
              matrix_size,
@@ -167,54 +167,18 @@ namespace Pliris {
 
   }
 
-#ifdef ZCPLX  
-//  void FactorSolve( DATA_TYPE* AA,
-//                    int my_rows,
-//                    int my_cols,
-//                    int my_rhs,
-//                    int* matrix_size,
-//                    int* num_procsr,
-//                    int* num_rhs,
-//                    double* secs){
-//    int me;
-//
-//    MPI_Comm_rank(MPI_COMM_WORLD, &me) ;
-//
-//    { // Note: To avoid segmentation fault when FactorSolve is called mulyiple times with the unmanaged view, it's safest to make sure unmanaged View falls out of scope before freeing its memory.
-//#ifdef KOKKOS_ENABLE_CUDA 
-//    typedef Kokkos::View<Kokkos::complex<double>**,
-//                         Kokkos::LayoutLeft,
-//                         Kokkos::CudaSpace,
-//                         Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
-//#else//OpenMP
-//    typedef Kokkos::View<Kokkos::complex<double>**,
-//                         Kokkos::LayoutLeft,
-//                         Kokkos::HostSpace,
-//                         Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
-//#endif
-//
-//    AA_Internal AA_i(reinterpret_cast<Kokkos::complex<double> *>(AA), my_rows, my_cols + my_rhs + 6);
-//
-//    printf("FactorSolve (dcomplex pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, my_rhs, *matrix_size, *num_procsr, *num_rhs);
-//
-//    lusolve_(AA_i,
-//             matrix_size,
-//             num_procsr,
-//             num_rhs,
-//             secs);
-//    }
-//  }
+#ifdef ZCPLX
   void FactorSolve_devPtr( DATA_TYPE* AA,
-                           int my_rows,
-                           int my_cols,
-                           int my_rhs,
+                           int my_rows_,
+                           int my_cols_,
+                           int my_rhs_,
                            int* matrix_size,
                            int* num_procsr,
                            int* num_rhs,
                            double* secs){
-    int me;
+    int rank;
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &me) ;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank) ;
 
     { // Note: To avoid segmentation fault when FactorSolve is called mulyiple times with the unmanaged view, it's safest to make sure unmanaged View falls out of scope before freeing its memory.
 #ifdef KOKKOS_ENABLE_CUDA 
@@ -223,9 +187,9 @@ namespace Pliris {
                          Kokkos::CudaSpace,
                          Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
 
-    AA_Internal AA_i(reinterpret_cast<Kokkos::complex<double> *>(AA), my_rows, my_cols + my_rhs + 6);
+    AA_Internal AA_i(reinterpret_cast<Kokkos::complex<double> *>(AA), my_rows_, my_cols_ + my_rhs_ + 6);
 
-    printf("FactorSolve_devPtr (dcomplex pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, my_rhs, *matrix_size, *num_procsr, *num_rhs);
+    printf("FactorSolve_devPtr (dcomplex pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", rank, my_rows_, my_cols_, my_rhs_, *matrix_size, *num_procsr, *num_rhs);
 
     lusolve_(AA_i,
              matrix_size,
@@ -236,16 +200,16 @@ namespace Pliris {
     }
   }
   void FactorSolve_hostPtr( DATA_TYPE* AA,
-                            int my_rows,
-                            int my_cols,
-                            int my_rhs,
+                            int my_rows_,
+                            int my_cols_,
+                            int my_rhs_,
                             int* matrix_size,
                             int* num_procsr,
                             int* num_rhs,
                             double* secs){
-    int me;
+    int rank;
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &me) ;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank) ;
 
     { // Note: To avoid segmentation fault when FactorSolve is called mulyiple times with the unmanaged view, it's safest to make sure unmanaged View falls out of scope before freeing its memory.
     typedef Kokkos::View<Kokkos::complex<double>**,
@@ -253,16 +217,16 @@ namespace Pliris {
                          Kokkos::HostSpace,
                          Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
 
-    AA_Internal AA_i(reinterpret_cast<Kokkos::complex<double> *>(AA), my_rows, my_cols + my_rhs + 6);
+    AA_Internal AA_i(reinterpret_cast<Kokkos::complex<double> *>(AA), my_rows_, my_cols_ + my_rhs_ + 6);
 
 #ifdef KOKKOS_ENABLE_CUDA 
     typedef Kokkos::View<Kokkos::complex<double>**,
                          Kokkos::LayoutLeft,
                          Kokkos::CudaSpace > AA_Internal_dev;
 
-    AA_Internal_dev AA_i_dev( "AA_i_dev", my_rows, my_cols + my_rhs + 6 );
+    AA_Internal_dev AA_i_dev( "AA_i_dev", my_rows_, my_cols_ + my_rhs_ + 6 );
 
-    printf("FactorSolve_hostPtr with CUDA solve (dcomplex pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, my_rhs, *matrix_size, *num_procsr, *num_rhs);
+    printf("FactorSolve_hostPtr with CUDA solve (dcomplex pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", rank, my_rows_, my_cols_, my_rhs_, *matrix_size, *num_procsr, *num_rhs);
 
     Kokkos::deep_copy( AA_i_dev, AA_i );
 
@@ -274,7 +238,7 @@ namespace Pliris {
 
     Kokkos::deep_copy( AA_i, AA_i_dev );
 #else//OpenMP
-    printf("FactorSolve_hostPtr with host solve (dcomplex pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, my_rhs, *matrix_size, *num_procsr, *num_rhs);
+    printf("FactorSolve_hostPtr with host solve (dcomplex pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", rank, my_rows_, my_cols_, my_rhs_, *matrix_size, *num_procsr, *num_rhs);
 
     lusolve_(AA_i,
              matrix_size,
@@ -285,54 +249,18 @@ namespace Pliris {
     }
   }
 #endif
-#ifdef DREAL  
-//  void FactorSolve( DATA_TYPE* AA,
-//                    int my_rows,
-//                    int my_cols,
-//                    int my_rhs,
-//                    int* matrix_size,
-//                    int* num_procsr,
-//                    int* num_rhs,
-//                    double* secs){
-//    int me;
-//
-//    MPI_Comm_rank(MPI_COMM_WORLD, &me) ;
-//
-//    { // Note: To avoid segmentation fault when FactorSolve is called mulyiple times with the unmanaged view, it's safest to make sure unmanaged View falls out of scope before freeing its memory.
-//#ifdef KOKKOS_ENABLE_CUDA 
-//    typedef Kokkos::View<double**,
-//                         Kokkos::LayoutLeft,
-//                         Kokkos::CudaSpace,
-//                         Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
-//#else//OpenMP
-//    typedef Kokkos::View<double**,
-//                         Kokkos::LayoutLeft,
-//                         Kokkos::HostSpace,
-//                         Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
-//#endif
-//
-//    AA_Internal AA_i(reinterpret_cast<double *>(AA), my_rows, my_cols + my_rhs + 6);
-//
-//    printf("FactorSolve (double pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, my_rhs, *matrix_size, *num_procsr, *num_rhs);
-//
-//    lusolve_(AA_i,
-//             matrix_size,
-//             num_procsr,
-//             num_rhs,
-//             secs);
-//    }
-//  }
+#ifdef DREAL
   void FactorSolve_devPtr( DATA_TYPE* AA,
-                           int my_rows,
-                           int my_cols,
-                           int my_rhs,
+                           int my_rows_,
+                           int my_cols_,
+                           int my_rhs_,
                            int* matrix_size,
                            int* num_procsr,
                            int* num_rhs,
                            double* secs){
-    int me;
+    int rank;
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &me) ;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank) ;
 
     { // Note: To avoid segmentation fault when FactorSolve is called mulyiple times with the unmanaged view, it's safest to make sure unmanaged View falls out of scope before freeing its memory.
 #ifdef KOKKOS_ENABLE_CUDA 
@@ -341,9 +269,9 @@ namespace Pliris {
                          Kokkos::CudaSpace,
                          Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
 
-    AA_Internal AA_i(reinterpret_cast<double *>(AA), my_rows, my_cols + my_rhs + 6);
+    AA_Internal AA_i(reinterpret_cast<double *>(AA), my_rows_, my_cols_ + my_rhs_ + 6);
 
-    printf("FactorSolve_devPtr (double pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, my_rhs, *matrix_size, *num_procsr, *num_rhs);
+    printf("FactorSolve_devPtr (double pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", rank, my_rows_, my_cols_, my_rhs_, *matrix_size, *num_procsr, *num_rhs);
 
     lusolve_(AA_i,
              matrix_size,
@@ -354,16 +282,16 @@ namespace Pliris {
     }
   }
   void FactorSolve_hostPtr( DATA_TYPE* AA,
-                            int my_rows,
-                            int my_cols,
-                            int my_rhs,
+                            int my_rows_,
+                            int my_cols_,
+                            int my_rhs_,
                             int* matrix_size,
                             int* num_procsr,
                             int* num_rhs,
                             double* secs){
-    int me;
+    int rank;
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &me) ;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank) ;
 
     { // Note: To avoid segmentation fault when FactorSolve is called mulyiple times with the unmanaged view, it's safest to make sure unmanaged View falls out of scope before freeing its memory.
     typedef Kokkos::View<double**,
@@ -371,16 +299,16 @@ namespace Pliris {
                          Kokkos::HostSpace,
                          Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
 
-    AA_Internal AA_i(reinterpret_cast<double *>(AA), my_rows, my_cols + my_rhs + 6);
+    AA_Internal AA_i(reinterpret_cast<double *>(AA), my_rows_, my_cols_ + my_rhs_ + 6);
 
 #ifdef KOKKOS_ENABLE_CUDA 
     typedef Kokkos::View<double**,
                          Kokkos::LayoutLeft,
                          Kokkos::CudaSpace > AA_Internal_dev;
 
-    AA_Internal_dev AA_i_dev( "AA_i_dev", my_rows, my_cols + my_rhs + 6 );
+    AA_Internal_dev AA_i_dev( "AA_i_dev", my_rows_, my_cols_ + my_rhs_ + 6 );
 
-    printf("FactorSolve_hostPtr with CUDA solve (double pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, my_rhs, *matrix_size, *num_procsr, *num_rhs);
+    printf("FactorSolve_hostPtr with CUDA solve (double pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", rank, my_rows_, my_cols_, my_rhs_, *matrix_size, *num_procsr, *num_rhs);
 
     Kokkos::deep_copy( AA_i_dev, AA_i );
 
@@ -392,7 +320,7 @@ namespace Pliris {
 
     Kokkos::deep_copy( AA_i, AA_i_dev );
 #else//OpenMP
-    printf("FactorSolve_hostPtr with host solve (double pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, my_rhs, *matrix_size, *num_procsr, *num_rhs);
+    printf("FactorSolve_hostPtr with host solve (double pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", rank, my_rows_, my_cols_, my_rhs_, *matrix_size, *num_procsr, *num_rhs);
 
     lusolve_(AA_i,
              matrix_size,
@@ -403,54 +331,18 @@ namespace Pliris {
     }
   }
 #endif
-#ifdef SCPLX  
-//  void FactorSolve( DATA_TYPE* AA,
-//                    int my_rows,
-//                    int my_cols,
-//                    int my_rhs,
-//                    int* matrix_size,
-//                    int* num_procsr,
-//                    int* num_rhs,
-//                    double* secs){
-//    int me;
-//
-//    MPI_Comm_rank(MPI_COMM_WORLD, &me) ;
-//
-//    { // Note: To avoid segmentation fault when FactorSolve is called mulyiple times with the unmanaged view, it's safest to make sure unmanaged View falls out of scope before freeing its memory.
-//#ifdef KOKKOS_ENABLE_CUDA 
-//    typedef Kokkos::View<Kokkos::complex<float>**,
-//                         Kokkos::LayoutLeft,
-//                         Kokkos::CudaSpace,
-//                         Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
-//#else//OpenMP
-//    typedef Kokkos::View<Kokkos::complex<float>**,
-//                         Kokkos::LayoutLeft,
-//                         Kokkos::HostSpace,
-//                         Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
-//#endif
-//
-//    AA_Internal AA_i(reinterpret_cast<Kokkos::complex<float> *>(AA), my_rows, my_cols + my_rhs + 6);
-//
-//    printf("FactorSolve (scomplex pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, my_rhs, *matrix_size, *num_procsr, *num_rhs);
-//
-//    lusolve_(AA_i,
-//             matrix_size,
-//             num_procsr,
-//             num_rhs,
-//             secs);
-//    }
-//  }
+#ifdef SCPLX
   void FactorSolve_devPtr( DATA_TYPE* AA,
-                           int my_rows,
-                           int my_cols,
-                           int my_rhs,
+                           int my_rows_,
+                           int my_cols_,
+                           int my_rhs_,
                            int* matrix_size,
                            int* num_procsr,
                            int* num_rhs,
                            double* secs){
-    int me;
+    int rank;
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &me) ;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank) ;
 
     { // Note: To avoid segmentation fault when FactorSolve is called mulyiple times with the unmanaged view, it's safest to make sure unmanaged View falls out of scope before freeing its memory.
 #ifdef KOKKOS_ENABLE_CUDA 
@@ -459,9 +351,9 @@ namespace Pliris {
                          Kokkos::CudaSpace,
                          Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
 
-    AA_Internal AA_i(reinterpret_cast<Kokkos::complex<float> *>(AA), my_rows, my_cols + my_rhs + 6);
+    AA_Internal AA_i(reinterpret_cast<Kokkos::complex<float> *>(AA), my_rows_, my_cols_ + my_rhs_ + 6);
 
-    printf("FactorSolve_devPtr (scomplex pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, my_rhs, *matrix_size, *num_procsr, *num_rhs);
+    printf("FactorSolve_devPtr (scomplex pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", rank, my_rows_, my_cols_, my_rhs_, *matrix_size, *num_procsr, *num_rhs);
 
     lusolve_(AA_i,
              matrix_size,
@@ -472,16 +364,16 @@ namespace Pliris {
     }
   }
   void FactorSolve_hostPtr( DATA_TYPE* AA,
-                            int my_rows,
-                            int my_cols,
-                            int my_rhs,
+                            int my_rows_,
+                            int my_cols_,
+                            int my_rhs_,
                             int* matrix_size,
                             int* num_procsr,
                             int* num_rhs,
                             double* secs){
-    int me;
+    int rank;
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &me) ;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank) ;
 
     { // Note: To avoid segmentation fault when FactorSolve is called mulyiple times with the unmanaged view, it's safest to make sure unmanaged View falls out of scope before freeing its memory.
     typedef Kokkos::View<Kokkos::complex<float>**,
@@ -489,16 +381,16 @@ namespace Pliris {
                          Kokkos::HostSpace,
                          Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
 
-    AA_Internal AA_i(reinterpret_cast<Kokkos::complex<float> *>(AA), my_rows, my_cols + my_rhs + 6);
+    AA_Internal AA_i(reinterpret_cast<Kokkos::complex<float> *>(AA), my_rows_, my_cols_ + my_rhs_ + 6);
 
 #ifdef KOKKOS_ENABLE_CUDA 
     typedef Kokkos::View<Kokkos::complex<float>**,
                          Kokkos::LayoutLeft,
                          Kokkos::CudaSpace > AA_Internal_dev;
 
-    AA_Internal_dev AA_i_dev( "AA_i_dev", my_rows, my_cols + my_rhs + 6 );
+    AA_Internal_dev AA_i_dev( "AA_i_dev", my_rows_, my_cols_ + my_rhs_ + 6 );
 
-    printf("FactorSolve_hostPtr with CUDA solve (scomplex pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, my_rhs, *matrix_size, *num_procsr, *num_rhs);
+    printf("FactorSolve_hostPtr with CUDA solve (scomplex pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", rank, my_rows_, my_cols_, my_rhs_, *matrix_size, *num_procsr, *num_rhs);
 
     Kokkos::deep_copy( AA_i_dev, AA_i );
 
@@ -510,7 +402,7 @@ namespace Pliris {
 
     Kokkos::deep_copy( AA_i, AA_i_dev );
 #else//OpenMP
-    printf("FactorSolve_hostPtr with host solve (scomplex pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, my_rhs, *matrix_size, *num_procsr, *num_rhs);
+    printf("FactorSolve_hostPtr with host solve (scomplex pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", rank, my_rows_, my_cols_, my_rhs_, *matrix_size, *num_procsr, *num_rhs);
 
     lusolve_(AA_i,
              matrix_size,
@@ -521,54 +413,18 @@ namespace Pliris {
     }
   }
 #endif
-#ifdef SREAL  
-//  void FactorSolve( DATA_TYPE* AA,
-//                    int my_rows,
-//                    int my_cols,
-//                    int my_rhs,
-//                    int* matrix_size,
-//                    int* num_procsr,
-//                    int* num_rhs,
-//                    double* secs){
-//    int me;
-//
-//    MPI_Comm_rank(MPI_COMM_WORLD, &me) ;
-//
-//    { // Note: To avoid segmentation fault when FactorSolve is called mulyiple times with the unmanaged view, it's safest to make sure unmanaged View falls out of scope before freeing its memory.
-//#ifdef KOKKOS_ENABLE_CUDA 
-//    typedef Kokkos::View<float**,
-//                         Kokkos::LayoutLeft,
-//                         Kokkos::CudaSpace,
-//                         Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
-//#else//OpenMP
-//    typedef Kokkos::View<float**,
-//                         Kokkos::LayoutLeft,
-//                         Kokkos::HostSpace,
-//                         Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
-//#endif
-//
-//    AA_Internal AA_i(reinterpret_cast<float *>(AA), my_rows, my_cols + my_rhs + 6);
-//
-//    printf("FactorSolve (float pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, my_rhs, *matrix_size, *num_procsr, *num_rhs);
-//
-//    lusolve_(AA_i,
-//             matrix_size,
-//             num_procsr,
-//             num_rhs,
-//             secs);
-//    }
-//  }
+#ifdef SREAL
   void FactorSolve_devPtr( DATA_TYPE* AA,
-                           int my_rows,
-                           int my_cols,
-                           int my_rhs,
+                           int my_rows_,
+                           int my_cols_,
+                           int my_rhs_,
                            int* matrix_size,
                            int* num_procsr,
                            int* num_rhs,
                            double* secs){
-    int me;
+    int rank;
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &me) ;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank) ;
 
     { // Note: To avoid segmentation fault when FactorSolve is called mulyiple times with the unmanaged view, it's safest to make sure unmanaged View falls out of scope before freeing its memory.
 #ifdef KOKKOS_ENABLE_CUDA 
@@ -577,9 +433,9 @@ namespace Pliris {
                          Kokkos::CudaSpace,
                          Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
 
-    AA_Internal AA_i(reinterpret_cast<float *>(AA), my_rows, my_cols + my_rhs + 6);
+    AA_Internal AA_i(reinterpret_cast<float *>(AA), my_rows_, my_cols_ + my_rhs_ + 6);
 
-    printf("FactorSolve_devPtr (float pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, my_rhs, *matrix_size, *num_procsr, *num_rhs);
+    printf("FactorSolve_devPtr (float pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", rank, my_rows_, my_cols_, my_rhs_, *matrix_size, *num_procsr, *num_rhs);
 
     lusolve_(AA_i,
              matrix_size,
@@ -590,16 +446,16 @@ namespace Pliris {
     }
   }
   void FactorSolve_hostPtr( DATA_TYPE* AA,
-                            int my_rows,
-                            int my_cols,
-                            int my_rhs,
+                            int my_rows_,
+                            int my_cols_,
+                            int my_rhs_,
                             int* matrix_size,
                             int* num_procsr,
                             int* num_rhs,
                             double* secs){
-    int me;
+    int rank;
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &me) ;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank) ;
 
     { // Note: To avoid segmentation fault when FactorSolve is called mulyiple times with the unmanaged view, it's safest to make sure unmanaged View falls out of scope before freeing its memory.
     typedef Kokkos::View<float**,
@@ -607,16 +463,16 @@ namespace Pliris {
                          Kokkos::HostSpace,
                          Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
 
-    AA_Internal AA_i(reinterpret_cast<float *>(AA), my_rows, my_cols + my_rhs + 6);
+    AA_Internal AA_i(reinterpret_cast<float *>(AA), my_rows_, my_cols_ + my_rhs_ + 6);
 
 #ifdef KOKKOS_ENABLE_CUDA 
     typedef Kokkos::View<float**,
                          Kokkos::LayoutLeft,
                          Kokkos::CudaSpace > AA_Internal_dev;
 
-    AA_Internal_dev AA_i_dev( "AA_i_dev", my_rows, my_cols + my_rhs + 6 );
+    AA_Internal_dev AA_i_dev( "AA_i_dev", my_rows_, my_cols_ + my_rhs_ + 6 );
 
-    printf("FactorSolve_hostPtr with CUDA solve (float pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, my_rhs, *matrix_size, *num_procsr, *num_rhs);
+    printf("FactorSolve_hostPtr with CUDA solve (float pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", rank, my_rows_, my_cols_, my_rhs_, *matrix_size, *num_procsr, *num_rhs);
 
     Kokkos::deep_copy( AA_i_dev, AA_i );
 
@@ -628,7 +484,7 @@ namespace Pliris {
 
     Kokkos::deep_copy( AA_i, AA_i_dev );
 #else//OpenMP
-    printf("FactorSolve_hostPtr with host solve (float pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", me, my_rows, my_cols, my_rhs, *matrix_size, *num_procsr, *num_rhs);
+    printf("FactorSolve_hostPtr with host solve (float pointer interface) in rank %d -- my_rows %u , my_cols %u, my_rhs %u , matrix_size %u, num_procs_per_row %u, num_rhs %u\n", rank, my_rows_, my_cols_, my_rhs_, *matrix_size, *num_procsr, *num_rhs);
 
     lusolve_(AA_i,
              matrix_size,
