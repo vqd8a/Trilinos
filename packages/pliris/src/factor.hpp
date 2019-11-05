@@ -336,8 +336,8 @@ void factor(ZDView& ZV,                 // matrix and rhs
                            act_row_view,
                            d_one,
                            cur_col_view);
-
 #ifdef GET_TIMING
+          Kokkos::fence();
           colupdtime += (MPI_Wtime()-t1);
 #endif
         }
@@ -441,8 +441,8 @@ void factor(ZDView& ZV,                 // matrix and rhs
       invpiv = d_one/pivot.entry;
       auto cur_col_view_1d = subview(ZV, Kokkos::make_pair(cur_col_i, cur_col_i+col_len),cur_col_j);
       KokkosBlas::scal(cur_col_view_1d,invpiv,cur_col_view_1d);
-
 #ifdef GET_TIMING
+      Kokkos::fence();
       scaltime += (MPI_Wtime()-t1);
 #endif
 
@@ -476,10 +476,11 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #else
       BlasWrapper::copy (cur_col_view_1d, sav_col_view_1d);//copy: cur_col_view_1d --> sav_col_view_1d
 #endif
-
 #ifdef GET_TIMING
+      Kokkos::fence();
       copycoltime += (MPI_Wtime()-t1);
 #endif
+
 #ifdef GET_TIMING
       t1 = MPI_Wtime();
 #endif
@@ -595,7 +596,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
         bytes=col_len*sizeof(DATA_TYPE);
         Kokkos::deep_copy(subview(col1_view, Kokkos::make_pair(sav_col_i, sav_col_i+col_len), sav_col_j), subview(h_coltmp, Kokkos::make_pair(0, col_len)));
 #ifdef GET_TIMING
-      copyhostpinnedtime += (MPI_Wtime()-t1);
+        copyhostpinnedtime += (MPI_Wtime()-t1);
 #endif
 #endif
 
@@ -661,6 +662,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #endif
 
 #ifdef GET_TIMING
+        Kokkos::fence();
         copyrowtime += (MPI_Wtime()-t1);
 #endif
 
@@ -710,6 +712,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
                          piv_row_view);
 #endif
 #ifdef GET_TIMING
+        Kokkos::fence();
         rowupdtime += (MPI_Wtime()-t1);
 #endif
       }
@@ -740,6 +743,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #endif
 
 #ifdef GET_TIMING
+      Kokkos::fence();
       copypivrowtime += (MPI_Wtime()-t1);
 #endif
     }
@@ -796,6 +800,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #endif
 
 #ifdef GET_TIMING
+    Kokkos::fence();
     copypivrowtime += (MPI_Wtime()-t1);
 #endif
     if (gpivot_row != j){
@@ -884,6 +889,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #endif
 
 #ifdef GET_TIMING
+        Kokkos::fence();
         copyrow1time += (MPI_Wtime()-t1);
 #endif
       }
@@ -912,6 +918,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #endif
 
 #ifdef GET_TIMING
+        Kokkos::fence();
         copypivrow1time += (MPI_Wtime()-t1);
 #endif
       }
@@ -977,8 +984,8 @@ void factor(ZDView& ZV,                 // matrix and rhs
                        sav_piv_row_view,
                        d_one,
                        cur_col_view);
-
 #ifdef GET_TIMING
+      Kokkos::fence();
       colupdtime += (MPI_Wtime()-t1);
 #endif
     }
@@ -1008,6 +1015,7 @@ void factor(ZDView& ZV,                 // matrix and rhs
                          d_one,
                          update_view);
 #ifdef GET_TIMING
+        Kokkos::fence();
         updatetime += (MPI_Wtime()-t1);
 #endif
         /* reset active matrix pointers */
