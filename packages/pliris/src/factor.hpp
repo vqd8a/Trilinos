@@ -336,7 +336,10 @@ void factor(ZDView& ZV,                 // matrix and rhs
                            act_row_view,
                            d_one,
                            cur_col_view);
-#ifdef GET_TIMING
+#ifndef GET_TIMING
+          if (numprocs > 1)
+            Kokkos::fence();//Note: add Kokkos::fence() to guarantee synchronization if GET_TIMING not defined
+#else
           Kokkos::fence();
           colupdtime += (MPI_Wtime()-t1);
 #endif
@@ -441,7 +444,10 @@ void factor(ZDView& ZV,                 // matrix and rhs
       invpiv = d_one/pivot.entry;
       auto cur_col_view_1d = subview(ZV, Kokkos::make_pair(cur_col_i, cur_col_i+col_len),cur_col_j);
       KokkosBlas::scal(cur_col_view_1d,invpiv,cur_col_view_1d);
-#ifdef GET_TIMING
+#ifndef GET_TIMING
+      if (numprocs > 1)
+        Kokkos::fence();//Note: add Kokkos::fence() to guarantee synchronization if GET_TIMING not defined
+#else
       Kokkos::fence();
       scaltime += (MPI_Wtime()-t1);
 #endif
@@ -476,7 +482,10 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #else
       BlasWrapper::copy (cur_col_view_1d, sav_col_view_1d);//copy: cur_col_view_1d --> sav_col_view_1d
 #endif
-#ifdef GET_TIMING
+#ifndef GET_TIMING
+      if (numprocs > 1)
+        Kokkos::fence();//Note: add Kokkos::fence() to guarantee synchronization if GET_TIMING not defined
+#else
       Kokkos::fence();
       copycoltime += (MPI_Wtime()-t1);
 #endif
@@ -660,8 +669,10 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #else
         BlasWrapper::copy (cur_col1_row_view_1d, sav_row_plus_view_1d);//copy: cur_col1_row_view_1d --> sav_row_plus_view_1d
 #endif
-
-#ifdef GET_TIMING
+#ifndef GET_TIMING
+        if (numprocs > 1)
+          Kokkos::fence();//Note: add Kokkos::fence() to guarantee synchronization if GET_TIMING not defined
+#else
         Kokkos::fence();
         copyrowtime += (MPI_Wtime()-t1);
 #endif
@@ -696,6 +707,10 @@ void factor(ZDView& ZV,                 // matrix and rhs
                            act_row_view,
                            d_one,
                            piv_row_view);
+#ifndef GET_TIMING
+          if (numprocs > 1)
+            Kokkos::fence();//Note: add Kokkos::fence() to guarantee synchronization if GET_TIMING not defined
+#endif
         }
 #else
         //XGEMMS_(&transA, &transB, &one, &length, &colcnt, &d_min_one,
@@ -710,9 +725,13 @@ void factor(ZDView& ZV,                 // matrix and rhs
                          act_row_view,
                          d_one,
                          piv_row_view);
+#ifndef GET_TIMING
+        if (numprocs > 1)
+          Kokkos::fence();//Note: add Kokkos::fence() to guarantee synchronization if GET_TIMING not defined
+#endif
 #endif
 #ifdef GET_TIMING
-        Kokkos::fence();
+        Kokkos::fence();        
         rowupdtime += (MPI_Wtime()-t1);
 #endif
       }
@@ -741,8 +760,10 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #else
       BlasWrapper::copy (piv_col1_row_view_1d, temp_row_plus_view_1d);//copy: piv_col1_row_view_1d --> temp_row_plus_view_1d
 #endif
-
-#ifdef GET_TIMING
+#ifndef GET_TIMING
+      if (numprocs > 1)
+        Kokkos::fence();//Note: add Kokkos::fence() to guarantee synchronization if GET_TIMING not defined
+#else
       Kokkos::fence();
       copypivrowtime += (MPI_Wtime()-t1);
 #endif
@@ -798,11 +819,14 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #else
     BlasWrapper::copy (temp_row_view_1d, sav_piv_row_view_1d);//copy: temp_row_view_1d --> sav_piv_row_view_1d
 #endif
-
-#ifdef GET_TIMING
+#ifndef GET_TIMING
+    if (numprocs > 1)
+      Kokkos::fence();//Note: add Kokkos::fence() to guarantee synchronization if GET_TIMING not defined
+#else
     Kokkos::fence();
     copypivrowtime += (MPI_Wtime()-t1);
 #endif
+
     if (gpivot_row != j){
       if (me != pivot_owner && me == r_owner){
 #if defined(CUDA_HOST_PINNED_MPI) && defined(KOKKOS_ENABLE_CUDA)
@@ -887,8 +911,10 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #else
         BlasWrapper::copy (sav_row_plus_view_1d, piv_col1_row_view_1d);//copy: sav_row_plus_view_1d --> piv_col1_row_view_1d
 #endif
-
-#ifdef GET_TIMING
+#ifndef GET_TIMING
+        if (numprocs > 1)
+          Kokkos::fence();//Note: add Kokkos::fence() to guarantee synchronization if GET_TIMING not defined
+#else
         Kokkos::fence();
         copyrow1time += (MPI_Wtime()-t1);
 #endif
@@ -916,8 +942,10 @@ void factor(ZDView& ZV,                 // matrix and rhs
 #else
         BlasWrapper::copy (temp_row_plus_view_1d, cur_col1_row_view_1d);//copy: temp_row_plus_view_1d --> cur_col1_row_view_1d
 #endif
-
-#ifdef GET_TIMING
+#ifndef GET_TIMING
+        if (numprocs > 1)
+          Kokkos::fence();//Note: add Kokkos::fence() to guarantee synchronization if GET_TIMING not defined
+#else
         Kokkos::fence();
         copypivrow1time += (MPI_Wtime()-t1);
 #endif
@@ -984,7 +1012,10 @@ void factor(ZDView& ZV,                 // matrix and rhs
                        sav_piv_row_view,
                        d_one,
                        cur_col_view);
-#ifdef GET_TIMING
+#ifndef GET_TIMING
+      if (numprocs > 1)
+        Kokkos::fence();//Note: add Kokkos::fence() to guarantee synchronization if GET_TIMING not defined
+#else
       Kokkos::fence();
       colupdtime += (MPI_Wtime()-t1);
 #endif
@@ -1014,7 +1045,10 @@ void factor(ZDView& ZV,                 // matrix and rhs
                          act_row_view,
                          d_one,
                          update_view);
-#ifdef GET_TIMING
+#ifndef GET_TIMING
+        if (numprocs > 1)
+          Kokkos::fence();//Note: add Kokkos::fence() to guarantee synchronization if GET_TIMING not defined
+#else
         Kokkos::fence();
         updatetime += (MPI_Wtime()-t1);
 #endif
