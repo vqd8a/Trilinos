@@ -155,7 +155,7 @@
 /*  ------------------- Define BLAS prototype definitions ------------  */
 
 #ifdef ZCPLX
-#include "zblassp.h"
+//#include "zblassp.h"
 #define XGEMM_  zgemm_
 #define XGEMMS_ zgemm_
 #define XGEMM  zgemm
@@ -166,7 +166,7 @@
 #endif
 
 #ifdef SCPLX
-#include "cblassp.h"
+//#include "cblassp.h"
 #define XGEMM_  cgemm_
 #define XGEMM  cgemm
 #define XLU_SOLVE_ clusolve_
@@ -176,7 +176,7 @@
 #endif
 
 #ifdef DREAL
-#include "dblassp.h"
+//#include "dblassp.h"
 #define XGEMM_  dgemm_
 #define XGEMM  dgemm
 #define XGEMMS_ dgemm_
@@ -187,7 +187,7 @@
 #endif
 
 #ifdef SREAL
-#include "sblassp.h"
+//#include "sblassp.h"
 #define XGEMM_  sgemm_
 #define XGEMM  sgemm
 #define XGEMMS_  sgemm_

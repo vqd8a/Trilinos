@@ -41,10 +41,10 @@
 //@HEADER
 */
 
-#ifndef __VARSH__
-#define __VARSH__
+#ifndef __VARS_HPP__
+#define __VARS_HPP__
 
-#include "defines.h"
+//#include "defines.h"
 
 int   me;                       /* processor id information */
 
@@ -55,7 +55,7 @@ int   max_procs;		/* max num of procs in any dimension */
 
 int   nrows_matrix;		/* number of rows in the matrix */
 int   ncols_matrix;		/* number of cols in the matrix */
-int   matrix_size;		/* order of matrix=nrows_matrix=ncols_matrix */
+//int   matrix_size;		/* order of matrix=nrows_matrix=ncols_matrix */
 
 int   my_first_row;		/* proc position in a row */
 int   my_first_col;		/* proc position in a col */
@@ -72,23 +72,24 @@ int   my_rhs;                   /* number of right hand sides that I own */
 
 int   mat_stride;               /* stride to second dimension of mat */
 int   col1_stride;              /* stride to second dimension of col1 */
-int   row1_stride;              /* stride to second dimension of row1 */
+//int   row1_stride;              /* stride to second dimension of row1 */
+                                  //Note: comment out since row1_stride is not used
 
-DATA_TYPE *mat;			/* incore storage for col being factored */
-DATA_TYPE *rhs;                 /* storage for right hand sides */
-
-DATA_TYPE *col1;         	/* ptrs to col used for updating a col */
-DATA_TYPE *col2;		/* ptr to col received in message buf */
-DATA_TYPE *row1;		/* ptr to diagonal row */
-DATA_TYPE *row2;		/* ptr to pivot row */
-DATA_TYPE *row3;
-DATA_TYPE *rhs_temp;
-                                /* ptr to row used for pivots */
-int *pivot_vec;                 /* stores pivot information */
+//DATA_TYPE *mat;			/* incore storage for col being factored */
+//DATA_TYPE *rhs;                 /* storage for right hand sides */
+//
+//DATA_TYPE *col1;         	/* ptrs to col used for updating a col */
+//DATA_TYPE *col2;		/* ptr to col received in message buf */
+//DATA_TYPE *row1;		/* ptr to diagonal row */
+//DATA_TYPE *row2;		/* ptr to pivot row */
+//DATA_TYPE *row3;
+//DATA_TYPE *rhs_temp;
+//                                /* ptr to row used for pivots */
+//int *pivot_vec;                 /* stores pivot information */
 
 int   blksz;			/* block size for BLAS 3 operations */
 int   rhs_blksz;                /* agglomeration block size for backsolve */
-int   colcnt;			/* number of columns stored for BLAS 3 ops */
+//int   colcnt;			/* number of columns stored for BLAS 3 ops */
 
 
 int  myrow,mycol;
