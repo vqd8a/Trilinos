@@ -56,8 +56,7 @@
 namespace KokkosSparse {
 namespace Experimental {
 
-// TP2 algorithm has issues with some offset-ordinal combo to be addressed
-enum class SPILUKAlgorithm { SEQLVLSCHD_RP, SEQLVLSCHD_TP1/*, SEQLVLSCHED_TP2*/ };
+enum class SPILUKAlgorithm { SEQLVLSCHD_RP, SEQLVLSCHD_TP1, SEQLVLSCHD_TP1CHK };
 
 template <class size_type_, class lno_t_, class scalar_t_,
           class ExecutionSpace,
@@ -96,12 +95,15 @@ private:
   nnz_row_view_t level_list;//level IDs which the rows belong to
   nnz_lno_view_t level_idx; //the list of rows in each level
   nnz_lno_view_t level_ptr; //the starting index (into the view level_idx) of each level
+  nnz_lno_view_t level_nchunks;       //number of chunks of rows at each level
+  nnz_lno_view_t level_nrowsperchunk; //maximum number of rows among chunks at each level
 
   size_type nrows;
-  size_type nlevel;
+  size_type nlevels;
   size_type nnzL;
   size_type nnzU;
-  size_type level_maxrows;//maximum number of rows of levels
+  size_type level_maxrows;        //maximum number of rows among levels
+  size_type level_maxrowsperchunk;//maximum number of rows among chunks among levels
 
   bool symbolic_complete;
 
@@ -116,11 +118,14 @@ public:
     level_list(),
     level_idx(),
     level_ptr(),
+    level_nchunks(),
+    level_nrowsperchunk(),
     nrows(nrows_),
-    nlevel(0),
+    nlevels(0),
     nnzL(nnzL_),
     nnzU(nnzU_),
     level_maxrows(0),
+    level_maxrowsperchunk(0),
     symbolic_complete( symbolic_complete_ ),
     algm(choice),
     team_size(-1),
@@ -133,14 +138,16 @@ public:
     set_nnzL(nnzL_);
     set_nnzU(nnzU_);
     set_level_maxrows(0);
+    set_level_maxrowsperchunk(0);
     level_list = nnz_row_view_t("level_list", nrows_),
     level_idx  = nnz_lno_view_t("level_idx", nrows_),
     level_ptr  = nnz_lno_view_t("level_ptr", nrows_+1),
+    level_nchunks = nnz_lno_view_t(),
+    level_nrowsperchunk = nnz_lno_view_t(),
     reset_symbolic_complete();
   }
 
   virtual ~SPILUKHandle() {};
-
 
   void set_algorithm(SPILUKAlgorithm choice) { algm = choice; }
 
@@ -154,6 +161,20 @@ public:
 
   KOKKOS_INLINE_FUNCTION
   nnz_lno_view_t get_level_ptr() const { return level_ptr; }
+
+  KOKKOS_INLINE_FUNCTION
+  nnz_lno_view_t get_level_nchunks() const { return level_nchunks; }
+
+  void alloc_level_nchunks(const size_type nlevels_) {
+    level_nchunks = nnz_lno_view_t("level_nchunks", nlevels_);
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  nnz_lno_view_t get_level_nrowsperchunk() const { return level_nrowsperchunk; }
+
+  void alloc_level_nrowsperchunk(const size_type nlevels_) {
+    level_nrowsperchunk = nnz_lno_view_t("level_nrowsperchunk", nlevels_);
+  }
 
   KOKKOS_INLINE_FUNCTION
   size_type get_nrows() const { return nrows; }
@@ -179,10 +200,16 @@ public:
   KOKKOS_INLINE_FUNCTION
   void set_level_maxrows(const size_type level_maxrows_) { this->level_maxrows = level_maxrows_; }
 
+  KOKKOS_INLINE_FUNCTION
+  size_type get_level_maxrowsperchunk() const { return level_maxrowsperchunk; }
+
+  KOKKOS_INLINE_FUNCTION
+  void set_level_maxrowsperchunk(const size_type level_maxrowsperchunk_) { this->level_maxrowsperchunk = level_maxrowsperchunk_; }
+
   bool is_symbolic_complete() const { return symbolic_complete; }
 
-  size_type get_num_levels() const { return nlevel; }
-  void set_num_levels(size_type nlevels_) { this->nlevel = nlevels_; }
+  size_type get_num_levels() const { return nlevels; }
+  void set_num_levels(size_type nlevels_) { this->nlevels = nlevels_; }
 
   void set_symbolic_complete() { this->symbolic_complete = true; }
   void reset_symbolic_complete() { this->symbolic_complete = false; }
@@ -195,24 +222,21 @@ public:
 
   void print_algorithm() { 
     if ( algm == SPILUKAlgorithm::SEQLVLSCHD_RP )
-      std::cout << "SEQLVLSCHD_RP" << std::endl;;
+      std::cout << "SEQLVLSCHD_RP" << std::endl;
 
     if ( algm == SPILUKAlgorithm::SEQLVLSCHD_TP1 )
-      std::cout << "SEQLVLSCHD_TP1" << std::endl;;
+      std::cout << "SEQLVLSCHD_TP1" << std::endl;
 
-    /*
-    if ( algm == SPILUKAlgorithm::SEQLVLSCHED_TP2 ) {
-      std::cout << "SEQLVLSCHED_TP2" << std::endl;;
-      std::cout << "WARNING: With CUDA this is currently only reliable with int-int ordinal-offset pair" << std::endl;
+    if ( algm == SPILUKAlgorithm::SEQLVLSCHD_TP1CHK ) {
+      std::cout << "SEQLVLSCHD_TP1CHK" << std::endl;
     }
-    */
   }
 
   inline SPILUKAlgorithm StringToSPILUKAlgorithm(std::string & name) {
     if(name=="SPILUK_DEFAULT")             return SPILUKAlgorithm::SEQLVLSCHD_RP;
     else if(name=="SPILUK_RANGEPOLICY")    return SPILUKAlgorithm::SEQLVLSCHD_RP;
     else if(name=="SPILUK_TEAMPOLICY1")    return SPILUKAlgorithm::SEQLVLSCHD_TP1;
-    /*else if(name=="SPILUK_TEAMPOLICY2")    return SPILUKAlgorithm::SEQLVLSCHED_TP2;*/
+    else if(name=="SPILUK_TEAMPOLICY1CHK") return SPILUKAlgorithm::SEQLVLSCHD_TP1CHK;
     else
       throw std::runtime_error("Invalid SPILUKAlgorithm name");
   }

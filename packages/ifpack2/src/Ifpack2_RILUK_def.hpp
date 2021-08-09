@@ -504,10 +504,24 @@ void RILUK<MatrixType>::initialize ()
 
     if (this->isKokkosKernelsSpiluk_) {
       this->KernelHandle_ = Teuchos::rcp (new kk_handle_type ());
-      KernelHandle_->create_spiluk_handle( KokkosSparse::Experimental::SPILUKAlgorithm::SEQLVLSCHD_TP1, 
-                                           A_local_->getNodeNumRows(),
-                                           2*A_local_->getNodeNumEntries()*(LevelOfFill_+1), 
-                                           2*A_local_->getNodeNumEntries()*(LevelOfFill_+1) );
+#ifdef KOKKOS_ENABLE_CUDA
+      if (std::is_same<Kokkos::Cuda, HandleExecSpace>::value)
+      {
+        printf("SPILUKAlgorithm::SEQLVLSCHD_TP1CHK\n");
+        KernelHandle_->create_spiluk_handle( KokkosSparse::Experimental::SPILUKAlgorithm::SEQLVLSCHD_TP1CHK, 
+                                             A_local_->getNodeNumRows(),
+                                             2*A_local_->getNodeNumEntries()*(LevelOfFill_+1), 
+                                             2*A_local_->getNodeNumEntries()*(LevelOfFill_+1) );
+      }
+      else
+#endif
+      {
+        printf("SPILUKAlgorithm::SEQLVLSCHD_TP1\n");
+        KernelHandle_->create_spiluk_handle( KokkosSparse::Experimental::SPILUKAlgorithm::SEQLVLSCHD_TP1,
+                                             A_local_->getNodeNumRows(),
+                                             2*A_local_->getNodeNumEntries()*(LevelOfFill_+1),
+                                             2*A_local_->getNodeNumEntries()*(LevelOfFill_+1) );
+      }
     }
 
     {
