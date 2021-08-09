@@ -177,12 +177,14 @@ void level_sched ( IlukHandle& thandle,
   HostViewType lnrowsperchunk( "lnrowsperchunk", nlevels );
 
   size_t avail_byte = 0;
+#ifdef KOKKOS_ENABLE_CUDA
   if ( std::is_same< memory_space, Kokkos::CudaSpace >::value )	{
     size_t free_byte, total_byte;
     KokkosKernels::Impl::kk_get_free_total_memory<memory_space>(free_byte, total_byte);
     avail_byte = static_cast<size_t>(0.85*free_byte);
     //printf("VINH_CHECK iluk_symbolic: free_byte %ld (bytes), total_byte %ld (bytes), avail_byte %ld (bytes)\n", free_byte, total_byte, avail_byte);
   }
+#endif
 
   size_type maxrows = 0;
   size_type maxrowsperchunk = 0;
@@ -191,12 +193,16 @@ void level_sched ( IlukHandle& thandle,
     if( maxrows < lnrows ) {
       maxrows = lnrows;
     }
+#ifdef KOKKOS_ENABLE_CUDA
     size_t required_size = static_cast<size_t>(lnrows)*nrows*sizeof(nnz_lno_t);
-    if ( std::is_same< memory_space, Kokkos::CudaSpace >::value ) {
+    if ( std::is_same< memory_space, Kokkos::CudaSpace >::value ) 
+    {
       lnchunks(i) = required_size/avail_byte+1;
       lnrowsperchunk(i) = (lnrows%lnchunks(i)==0)?(lnrows/lnchunks(i)):(lnrows/lnchunks(i)+1);
     }
-    else {
+    else
+#endif
+    {
       lnchunks(i) = 1;
       lnrowsperchunk(i) = lnrows;
     }
