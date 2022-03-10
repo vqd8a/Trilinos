@@ -800,7 +800,10 @@ void RILUK<MatrixType>::compute ()
   int myRank = A_->getComm()->getRank();//VINH TEST
   int nRanks = A_->getComm()->getSize();//VINH TEST
   double timeval, max_out, min_out, avg_out;//VINH TEST
+  Teuchos::Time timer1 ("RILUK::compute-spiluk_numeric");//VINH TEST
+  Teuchos::Time timer3 ("RILUK::compute-make_local_crs");//VINH TEST
   Teuchos::TimeMonitor timeMon (timer);
+  
   double startTime = timer.wallTime();
 
   isComputed_ = false;
@@ -960,8 +963,9 @@ void RILUK<MatrixType>::compute ()
   }
   else {
     printf("     VINH TEST: compute() rank %d -- KSPILUK ...\n", myRank);
-    gettimeofday( &begin, NULL );
-    {//Make sure values in A is picked up even in case of pattern reuse
+    {
+      Teuchos::TimeMonitor timeMon3 (timer3);//VINH TEST
+      //Make sure values in A is picked up even in case of pattern reuse
       RCP<const crs_matrix_type> A_local_crs =
         rcp_dynamic_cast<const crs_matrix_type> (A_local_);
       if (A_local_crs.is_null ()) printf("     VINH TEST: compute() rank %d -- A_local_crs is null ...\n", myRank);
@@ -992,10 +996,19 @@ void RILUK<MatrixType>::compute ()
       A_local_entries_ = lclMtx.graph.entries;
       A_local_values_  = lclMtx.values;
     }
-    gettimeofday( &end, NULL );
-    printf("     VINH TEST: compute() rank %d -- copy entries into A_local_crs %.8lf (sec.)\n", myRank, 1.0 * ( end.tv_sec - begin.tv_sec ) + 1.0e-6 * ( end.tv_usec - begin.tv_usec ));
+    timeval = timer3.totalElapsedTime();
 
-    gettimeofday( &begin, NULL );
+    MPI_Allreduce(&timeval,&max_out,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&min_out,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    avg_out /= nRanks;
+    if (myRank == 0) {
+      printf("     VINH TEST: compute() -- copy entries into A_local_crs (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+      fprintf(stderr,"     VINH TEST: compute() -- copy entries into A_local_crs (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+    }
+
+    {
+    Teuchos::TimeMonitor timeMon1 (timer1);//VINH TEST
     L_->resumeFill ();
     U_->resumeFill ();
 
@@ -1024,9 +1037,18 @@ void RILUK<MatrixType>::compute ()
     
     L_->fillComplete (L_->getColMap (), A_local_->getRangeMap ());
     U_->fillComplete (A_local_->getDomainMap (), U_->getRowMap ());
-    gettimeofday( &end, NULL );
-    printf("     VINH TEST: compute() rank %d -- spiluk_numeric %.8lf (sec.)\n", myRank, 1.0 * ( end.tv_sec - begin.tv_sec ) + 1.0e-6 * ( end.tv_usec - begin.tv_usec ));
-    
+    }
+    timeval = timer1.totalElapsedTime();
+  
+    MPI_Allreduce(&timeval,&max_out,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&min_out,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    avg_out /= nRanks;
+    if (myRank == 0) {
+      printf("     VINH TEST: compute() -- spiluk_numeric (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+      fprintf(stderr,"     VINH TEST: compute() -- spiluk_numeric (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+    }
+
     gettimeofday( &begin, NULL );
     L_solver_->setMatrix (L_);
     L_solver_->compute ();//VINH: Only do compute if the pointer changed. Otherwise, do nothing
