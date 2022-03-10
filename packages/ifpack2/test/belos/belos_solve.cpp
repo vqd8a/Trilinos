@@ -55,7 +55,7 @@
 
 #include "build_problem.hpp"
 #include "build_solver.hpp"
-
+#include <sys/time.h>
 
 void
 process_command_line (bool& printedHelp,
@@ -65,6 +65,7 @@ process_command_line (bool& printedHelp,
 
 int main (int argc, char* argv[])
 {
+  struct timeval begin, end;//VINH TEST
   Tpetra::ScopeGuard tpetraScope (&argc, &argv);
 
   bool success = true;
@@ -100,6 +101,7 @@ int main (int argc, char* argv[])
         return EXIT_SUCCESS;
       }
     }
+    std::cout << "VINH TEST: xml file: " << xml_file <<std::endl;
 
     //Read the contents of the xml file into a ParameterList. That parameter list
     //should specify a matrix-file and optionally which Belos solver to use, and
@@ -116,15 +118,39 @@ int main (int argc, char* argv[])
     //Note that build_problem calls build_precond and sets a preconditioner on the
     //linear-problem, if a preconditioner is specified.
 
+    gettimeofday( &begin, NULL );
     Teuchos::RCP<BLinProb> problem =
       build_problem<Scalar,LO,GO,Node>(test_params, comm);
+    gettimeofday( &end, NULL );
+    printf("VINH TEST: build_problem time: %.8lf (sec.)\n", 1.0 * ( end.tv_sec - begin.tv_sec ) + 1.0e-6 * ( end.tv_usec - begin.tv_usec ));
 
     //The build_solver function is located in build_solver.hpp:
-
+    gettimeofday( &begin, NULL );
     Teuchos::RCP<BSolverMgr> solver = build_solver<Scalar,TMV,TOP>(test_params, problem);
+    gettimeofday( &end, NULL );
+    printf("VINH TEST: build_solver time: %.8lf (sec.)\n", 1.0 * ( end.tv_sec - begin.tv_sec ) + 1.0e-6 * ( end.tv_usec - begin.tv_usec ));
 
-    Belos::ReturnType ret = solver->solve();
-
+    Belos::ReturnType ret;
+    const int myRank = comm->getRank ();//VINH TEST
+    const int nRanks = comm->getSize ();//VINH TEST
+    double timeval, max_out, min_out, avg_out;//VINH TEST
+  
+    Teuchos::Time timer1 ("call Belos solver");
+    {
+    Teuchos::TimeMonitor timeMon1 (timer1);
+    ret = solver->solve();
+    }
+    timeval = timer1.totalElapsedTime();
+  
+    MPI_Allreduce(&timeval,&max_out,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&min_out,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    avg_out /= nRanks;
+    if (myRank == 0) {
+      printf("VINH TEST: Belos solver's solve time (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+      fprintf(stderr,"Time to Belos solve (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+    }
+	
     *out << "Converged in " << solver->getNumIters() << " iterations." << std::endl;
 
     Teuchos::RCP<const TOP> prec = problem->getLeftPrec();

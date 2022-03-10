@@ -65,6 +65,7 @@ build_precond (Teuchos::ParameterList& test_params,
   Teuchos::Time timer("precond");
   Teuchos::Time timer2("precond_reuse");
   const int myRank = A->getRowMap ()->getComm ()->getRank ();
+  const int nRanks = A->getRowMap ()->getComm ()->getSize ();//VINH TEST
 
   RCP<FancyOStream> out = getFancyOStream (rcpFromRef (cout));
 
@@ -90,24 +91,52 @@ build_precond (Teuchos::ParameterList& test_params,
     *out << "Configuring, initializing, and computing Ifpack2 preconditioner" << endl;
   }
   {
+    double timeval, max_out, min_out, avg_out;//VINH TEST
+
     OSTab tab (*out);
     prec->setParameters (tif_params);
     {
       Teuchos::TimeMonitor timeMon (timer_init);
       prec->initialize ();
     }
-     if (myRank == 0) {
-      *out << "Time Init: " << timer_init.totalElapsedTime() << endl;
-     }
+    timeval = timer_init.totalElapsedTime();
+
+    MPI_Barrier(MPI_COMM_WORLD);
+     //if (myRank == 0) {
+     // *out << "Time Init: " << timer_init.totalElapsedTime() << endl;
+     //}
+
+    MPI_Allreduce(&timeval,&max_out,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&min_out,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    avg_out /= nRanks;
+    if (myRank == 0) {
+      printf("Time Init (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+	  fprintf(stderr,"Time Init (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+    }
+
     {
       Teuchos::TimeMonitor timeMon (timer);
       prec->compute ();
     }
+    timeval = timer.totalElapsedTime();
+
+    MPI_Barrier(MPI_COMM_WORLD);
     if (myRank == 0) {
       *out << "Finished computing Ifpack2 preconditioner" << endl;
-      OSTab tab2 (*out);
-      *out << "Time (s): " << timer.totalElapsedTime () << endl;
+      //OSTab tab2 (*out);
+      //*out << "Time (s): " << timer.totalElapsedTime () << endl;
     }
+
+    MPI_Allreduce(&timeval,&max_out,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&min_out,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    avg_out /= nRanks;
+    if (myRank == 0) {
+      printf("Time Compute (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+      fprintf(stderr,"Time Compute (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+    }
+
     if (reuse_pattern == true)
       {
 	{

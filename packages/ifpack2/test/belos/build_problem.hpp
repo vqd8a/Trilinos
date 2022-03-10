@@ -60,6 +60,7 @@
 
 #include "read_matrix.hpp"
 #include "build_precond.hpp"
+#include <sys/time.h>
 
 template< class Scalar,class LocalOrdinal,class GlobalOrdinal,class Node >
 Teuchos::RCP<Belos::LinearProblem<Scalar,
@@ -84,12 +85,14 @@ build_problem_mm (Teuchos::ParameterList& test_params,
   Teuchos::RCP<TMV> x = Teuchos::rcp(new TMV(rowmap, 1));
 
   if (b == Teuchos::null) {
+    std::cout << "VINH TEST: b is Teuchos::null, making b here" << std::endl;
     b = Teuchos::rcp (new TMV (rowmap, 1));
     x->randomize ();
     BOPT::Apply (*A, *x, *b);
     BMVT::MvInit (*x, STS::zero ());
   }
   else {
+    std::cout << "VINH TEST: b is not Teuchos::null, x is ZERO" << std::endl;
     x->putScalar (STS::zero ());
   }
 
@@ -115,7 +118,27 @@ build_problem_mm (Teuchos::ParameterList& test_params,
       problem->setRightPrec (precond);
   }
 
+  printf("VINH TEST: set problem for Belos solver ... ");
+  const int myRank = A->getRowMap ()->getComm ()->getRank ();
+  const int nRanks = A->getRowMap ()->getComm ()->getSize ();
+  double timeval, max_out, min_out, avg_out;//VINH TEST
+
+  Teuchos::Time timer1 ("set problem");
+  {
+  Teuchos::TimeMonitor timeMon (timer1);
   problem->setProblem ();
+  }
+  timeval = timer1.totalElapsedTime();
+  
+  MPI_Allreduce(&timeval,&max_out,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+  MPI_Allreduce(&timeval,&min_out,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+  MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+  avg_out /= nRanks;
+  if (myRank == 0) {
+    printf("Time to Set Problem (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+    fprintf(stderr,"Time to Set Problem (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+  }
+
   return problem;
 }
 
@@ -128,6 +151,7 @@ build_problem (Teuchos::ParameterList& test_params,
                const Teuchos::RCP<const Teuchos::Comm<int> >& comm,
                const Teuchos::RCP<Node>& node = Teuchos::null)
 {
+  struct timeval begin, end;//VINH TEST
   using Teuchos::ArrayView;
   using Teuchos::ParameterList;
   using Teuchos::parameterList;
@@ -156,6 +180,7 @@ build_problem (Teuchos::ParameterList& test_params,
   Ifpack2::getParameter(test_params, "Use matrix with const graph", useMatrixWithConstGraph);
 
   if (mm_file != "not specified") {
+    gettimeofday( &begin, NULL );
     if (comm->getRank() == 0) {
       std::cout << "Matrix Market file for sparse matrix A: " << mm_file << std::endl;
     }
@@ -170,6 +195,8 @@ build_problem (Teuchos::ParameterList& test_params,
     }
     A = reader_type::readSparseFile (mm_file, comm, constructorParams,
                                      fillCompleteParams);
+    gettimeofday( &end, NULL );
+    printf("VINH TEST: read matrix time: %.8lf (sec.)\n", 1.0 * ( end.tv_sec - begin.tv_sec ) + 1.0e-6 * ( end.tv_usec - begin.tv_usec ));
 
     RCP<const map_type> domainMap = A->getDomainMap ();
     RCP<const map_type> rangeMap = A->getRangeMap ();

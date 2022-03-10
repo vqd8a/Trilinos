@@ -170,6 +170,8 @@ void lower_tri_symbolic (TriSolveHandle &thandle, const RowMapType drow_map, con
   Kokkos::Timer timer;
 #endif
 
+Kokkos::Timer timer1;//VINH TEST
+
  using namespace KokkosSparse::Experimental;
  if (thandle.get_algorithm () == SPTRSVAlgorithm::SEQLVLSCHD_RP  ||
      thandle.get_algorithm () == SPTRSVAlgorithm::SEQLVLSCHD_TP1 ||
@@ -210,7 +212,7 @@ void lower_tri_symbolic (TriSolveHandle &thandle, const RowMapType drow_map, con
 
   HostSignedEntriesType previous_level_list( Kokkos::view_alloc(Kokkos::WithoutInitializing, "previous_level_list"), nrows );
   Kokkos::deep_copy( previous_level_list, signed_integral_t(-1) );
-
+ 
   const bool stored_diagonal = thandle.is_stored_diagonal();
   // diagonal_offsets is uninitialized - deep_copy unnecessary at the beginning, only needed at the end
   auto diagonal_offsets = thandle.get_diagonal_offsets();
@@ -221,6 +223,8 @@ void lower_tri_symbolic (TriSolveHandle &thandle, const RowMapType drow_map, con
   auto ending_node = nrows;
 
   size_type node_count = 0;
+
+  timer1.reset();
 
   while (node_count < nrows) {
 
@@ -267,6 +271,8 @@ void lower_tri_symbolic (TriSolveHandle &thandle, const RowMapType drow_map, con
     level += 1;
   } // end while
 
+  //std::cout << "  VINH TEST Symbolic (lower tri) while loop time: " << timer1.seconds() << std::endl;;
+
   thandle.set_num_levels(level);
 
   // Create the chain now
@@ -299,6 +305,8 @@ void lower_tri_symbolic (TriSolveHandle &thandle, const RowMapType drow_map, con
   if (stored_diagonal)
     Kokkos::deep_copy(diagonal_offsets, hdiagonal_offsets);
 
+  std::cout << "              VINH TEST: sptrsv_lower_tri_symbolic() -- EntriesType " << typeid(EntriesType).name() << ", node_count = " << node_count << ", nlevel = " << level << ", npl.extent = " << nodes_per_level.extent(0) << std::endl;
+  
   // Extra check:
 #ifdef LVL_OUTPUT_INFO
   {
@@ -743,6 +751,8 @@ void upper_tri_symbolic ( TriSolveHandle &thandle, const RowMapType drow_map, co
   Kokkos::deep_copy(dlevel_list, level_list);
   if (stored_diagonal)
     Kokkos::deep_copy(diagonal_offsets, hdiagonal_offsets);
+
+  std::cout << "                VINH TEST: sptrsv_upper_tri_symbolic() -- EntriesType " << typeid(EntriesType).name() << ", node_count = " << node_count << ", nlevel = " << level << ", npl.extent = " << nodes_per_level.extent(0) << std::endl;
 
   // Extra check:
 #ifdef LVL_OUTPUT_INFO
