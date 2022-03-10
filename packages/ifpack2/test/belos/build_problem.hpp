@@ -135,8 +135,8 @@ build_problem_mm (Teuchos::ParameterList& test_params,
   MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
   avg_out /= nRanks;
   if (myRank == 0) {
-    printf("Time to Set Problem (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
-    fprintf(stderr,"Time to Set Problem (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+    printf("Time to Set Problem (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
+    fprintf(stderr,"Time to Set Problem (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
   }
 
   return problem;

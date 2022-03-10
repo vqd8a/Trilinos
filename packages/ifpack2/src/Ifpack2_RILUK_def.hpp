@@ -556,8 +556,8 @@ void RILUK<MatrixType>::initialize ()
     MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
     avg_out /= nRanks;
     if (myRank == 0) {
-      printf("     VINH TEST: initialize() -- copy entries into A_local_crs (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
-      fprintf(stderr,"     VINH TEST: initialize() -- copy entries into A_local_crs (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+      printf("     VINH TEST: initialize() -- copy entries into A_local_crs (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
+      fprintf(stderr,"     VINH TEST: initialize() -- copy entries into A_local_crs (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
     }
 
     {
@@ -573,8 +573,8 @@ void RILUK<MatrixType>::initialize ()
     MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
     avg_out /= nRanks;
     if (myRank == 0) {
-      printf("     VINH TEST: initialize() -- Graph_initialize (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
-      fprintf(stderr,"     VINH TEST: initialize() -- Graph_initialize (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+      printf("     VINH TEST: initialize() -- Graph_initialize (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
+      fprintf(stderr,"     VINH TEST: initialize() -- Graph_initialize (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
     }
 
     {
@@ -595,8 +595,8 @@ void RILUK<MatrixType>::initialize ()
     MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
     avg_out /= nRanks;
     if (myRank == 0) {
-      printf("     VINH TEST: initialize() -- initialize &compute L, U trisolvers (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
-      fprintf(stderr,"     VINH TEST: initialize() -- initialize &compute L, U trisolvers (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+      printf("     VINH TEST: initialize() -- initialize &compute L, U trisolvers (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
+      fprintf(stderr,"     VINH TEST: initialize() -- initialize &compute L, U trisolvers (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
     }
 
     // Do not call initAllValues. compute() always calls initAllValues to
@@ -1003,8 +1003,8 @@ void RILUK<MatrixType>::compute ()
     MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
     avg_out /= nRanks;
     if (myRank == 0) {
-      printf("     VINH TEST: compute() -- copy entries into A_local_crs (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
-      fprintf(stderr,"     VINH TEST: compute() -- copy entries into A_local_crs (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+      printf("     VINH TEST: compute() -- copy entries into A_local_crs (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
+      fprintf(stderr,"     VINH TEST: compute() -- copy entries into A_local_crs (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
     }
 
     {
@@ -1045,8 +1045,8 @@ void RILUK<MatrixType>::compute ()
     MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
     avg_out /= nRanks;
     if (myRank == 0) {
-      printf("     VINH TEST: compute() -- spiluk_numeric (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
-      fprintf(stderr,"     VINH TEST: compute() -- spiluk_numeric (sec.): %.4lf (min), %.4lf (avg), %.4lf (max).\n",min_out,avg_out,max_out);
+      printf("     VINH TEST: compute() -- spiluk_numeric (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
+      fprintf(stderr,"     VINH TEST: compute() -- spiluk_numeric (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
     }
 
     gettimeofday( &begin, NULL );
@@ -1071,7 +1071,7 @@ void RILUK<MatrixType>::compute ()
   MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
   avg_out /= nRanks;
   if (myRank == 0) {
-    fprintf(stderr,"     VINH TEST: compute() End (sec.): numCompute %d, %.4lf (min), %.4lf (avg), %.4lf (max).\n",numCompute_, min_out,avg_out,max_out);
+    fprintf(stderr,"     VINH TEST: compute() End (sec.): numCompute %d, %.8lf (min), %.8lf (avg), %.8lf (max).\n",numCompute_, min_out,avg_out,max_out);
   }
 }
 
@@ -1207,7 +1207,7 @@ apply (const Tpetra::MultiVector<scalar_type,local_ordinal_type,global_ordinal_t
   MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
   avg_out /= nRanks;
   if (myRank == 0) {
-    fprintf(stderr,"     VINH TEST: apply() End (sec.): numApply %d, %.4lf (min), %.4lf (avg), %.4lf (max).\n",numApply_,min_out,avg_out,max_out);
+    fprintf(stderr,"     VINH TEST: apply() End (sec.): numApply %d, %.8lf (min), %.8lf (avg), %.8lf (max).\n",numApply_,min_out,avg_out,max_out);
   }
 }
 
