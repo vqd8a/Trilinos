@@ -936,6 +936,8 @@ void AdditiveSchwarz<MatrixType,LocalInverseType>::initialize ()
   }
   double startTime = timer->wallTime();
 
+  printf("VINH TEST: AdditiveSchwarz::initialize () on RANK %d\n", Matrix_->getComm ()->getRank());//VINH TEST
+
   { // Start timing here.
     TimeMonitor timeMon (*timer);
 
@@ -1028,6 +1030,8 @@ void AdditiveSchwarz<MatrixType,LocalInverseType>::compute ()
     "input, after calling initialize() or compute().  If you choose to call "
     "setInnerPreconditioner() with a null input, you must then call it with a "
     "nonnull input before you may call initialize() or compute().");
+
+  printf("VINH TEST: AdditiveSchwarz::compute () on RANK %d\n", Matrix_->getComm ()->getRank());//VINH TEST
 
   const std::string timerName ("Ifpack2::AdditiveSchwarz::compute");
   RCP<Time> timer = TimeMonitor::lookupCounter (timerName);
