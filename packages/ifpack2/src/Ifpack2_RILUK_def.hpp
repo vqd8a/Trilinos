@@ -957,9 +957,9 @@ void RILUK<MatrixType>::compute ()
 
     // If L_solver_ or U_solver store modified factors internally, we need to reset those
     L_solver_->setMatrix (L_);
-    L_solver_->compute ();//VINH: Only do compute if the pointer changed. Otherwise, do nothing
+    L_solver_->compute ();//NOTE: Only do compute if the pointer changed. Otherwise, do nothing
     U_solver_->setMatrix (U_);
-    U_solver_->compute ();//VINH: Only do compute if the pointer changed. Otherwise, do nothing
+    U_solver_->compute ();//NOTE: Only do compute if the pointer changed. Otherwise, do nothing
   }
   else {
     printf("     VINH TEST: compute() rank %d -- KSPILUK ...\n", myRank);
@@ -1051,9 +1051,9 @@ void RILUK<MatrixType>::compute ()
 
     gettimeofday( &begin, NULL );
     L_solver_->setMatrix (L_);
-    L_solver_->compute ();//VINH: Only do compute if the pointer changed. Otherwise, do nothing
+    L_solver_->compute ();//NOTE: Only do compute if the pointer changed. Otherwise, do nothing
     U_solver_->setMatrix (U_);
-    U_solver_->compute ();//VINH: Only do compute if the pointer changed. Otherwise, do nothing
+    U_solver_->compute ();//NOTE: Only do compute if the pointer changed. Otherwise, do nothing
     gettimeofday( &end, NULL );
     printf("     VINH TEST: compute() rank %d -- L,U solvers setMatrix+symbolic %.8lf (sec.)\n", myRank, 1.0 * ( end.tv_sec - begin.tv_sec ) + 1.0e-6 * ( end.tv_usec - begin.tv_usec ));
   }

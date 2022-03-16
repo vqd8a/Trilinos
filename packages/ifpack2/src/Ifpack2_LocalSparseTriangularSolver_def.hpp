@@ -559,7 +559,7 @@ compute ()
      "been called by this point, but isInitialized_ is false.  "
      "Please report this bug to the Ifpack2 developers.");
 
-  if(! isComputed_) {//Only compute if not computed before
+  if (! isComputed_) {//Only compute if not computed before
   if (Teuchos::nonnull (htsImpl_))
     htsImpl_->compute (*A_crs_, out_);
 
@@ -1013,7 +1013,7 @@ setMatrix (const Teuchos::RCP<const row_matrix_type>& A)
       A_crs_ = A_crs;
       A_ = A;
     }
-
+ 
     if (Teuchos::nonnull (htsImpl_))
       htsImpl_->reset ();
   } // pointers are not the same
