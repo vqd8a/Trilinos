@@ -2619,6 +2619,9 @@ cudaProfilerStop();
   typedef typename TriSolveHandle::size_type size_type;
   typedef typename TriSolveHandle::nnz_lno_view_t NGBLType;
 
+  //printf("              VINH TEST: lower_tri_solve() -- ValuesType %s\n",  typeid(ValuesType).name());
+  //printf("              VINH TEST: lower_tri_solve() -- EntriesType %s\n",  typeid(EntriesType).name());
+
   auto nlevels = thandle.get_num_levels();
   // Keep this a host View, create device version and copy to back to host during scheduling
   // This requires making sure the host view in the handle is properly updated after the symbolic phase
@@ -2908,6 +2911,9 @@ cudaProfilerStop();
   std::cout << " + SpTrsv(lower) time: " << sptrsv_time_seconds << std::endl << std::endl;
   #endif
 
+  //std::cout << "                    + Execution space   : " << execution_space::name () << std::endl;
+  //std::cout << "                    + Memory space      : " << memory_space::name () << std::endl;
+  
 } // end lower_tri_solve
 
 
@@ -2923,6 +2929,8 @@ cudaProfilerStop();
   typedef typename TriSolveHandle::size_type size_type;
   typedef typename TriSolveHandle::nnz_lno_view_t NGBLType;
 
+  //printf("              VINH TEST: upper_tri_solve() -- ValuesType %s\n",  typeid(ValuesType).name());
+  //printf("              VINH TEST: upper_tri_solve() -- EntriesType %s\n",  typeid(EntriesType).name());
 
   auto nlevels = thandle.get_num_levels();
   // Keep this a host View, create device version and copy to back to host during scheduling
@@ -3317,6 +3325,9 @@ cudaProfilerStop();
   std::cout <<"  + Execution space    : " << execution_space::name () << std::endl;
   std::cout << " + Memory space       : " << memory_space::name () << std::endl;
   #endif
+
+  //std::cout <<"            + Execution space    : " << execution_space::name () << std::endl;
+  //std::cout << "           + Memory space       : " << memory_space::name () << std::endl;
 
 } // end upper_tri_solve
 

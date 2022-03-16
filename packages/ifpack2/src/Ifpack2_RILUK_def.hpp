@@ -49,6 +49,7 @@
 #include "Kokkos_Sort.hpp"
 #include "KokkosKernels_SparseUtils.hpp"
 #include "KokkosKernels_Sorting.hpp"
+#include <sys/time.h>
 
 namespace Ifpack2 {
 
@@ -472,8 +473,14 @@ void RILUK<MatrixType>::initialize ()
      "matrix until the matrix is fill complete.  If your matrix is a "
      "Tpetra::CrsMatrix, please call fillComplete on it (with the domain and "
      "range Maps, if appropriate) before calling this method.");
-  
+
+  int myRank = A_->getComm()->getRank();//VINH TEST
+  int nRanks = A_->getComm()->getSize();//VINH TEST
+  double timeval, max_out, min_out, avg_out;//VINH TEST  
   Teuchos::Time timer ("RILUK::initialize");
+  Teuchos::Time timer1 ("RILUK::initialize-graph_init");
+  Teuchos::Time timer2 ("RILUK::initialize-trisolvers_init_compute");
+  Teuchos::Time timer3 ("RILUK::initialize-make_local_crs");
   double startTime = timer.wallTime();
   { // Start timing
     Teuchos::TimeMonitor timeMon (timer);
@@ -502,8 +509,10 @@ void RILUK<MatrixType>::initialize ()
     // handle a Tpetra::RowGraph.)  However, to make it work for now,
     // we just copy the input matrix if it's not a CrsMatrix.
 
+    printf("     VINH TEST: initialize() -- rank %d, A_ global size %dx%d, local size %dx%d\n", myRank, A_->getGlobalNumRows(), A_->getGlobalNumCols(), A_->getLocalNumRows(), A_->getLocalNumCols());
+	printf("     VINH TEST: initialize() -- rank %d, A_local_ global size %dx%d, local size %dx%d\n", myRank, A_local_->getGlobalNumRows(), A_local_->getGlobalNumCols(), A_local_->getLocalNumRows(), A_local_->getLocalNumCols());
     if (this->isKokkosKernelsSpiluk_) {
-      this->KernelHandle_ = Teuchos::rcp (new kk_handle_type ());
+      this->KernelHandle_ = Teuchos::rcp (new kk_handle_type ()); printf("     VINH TEST: initialize() rank %d -- create_spiluk_handle ...\n", myRank);
       KernelHandle_->create_spiluk_handle( KokkosSparse::Experimental::SPILUKAlgorithm::SEQLVLSCHD_TP1, 
                                            A_local_->getLocalNumRows(),
                                            2*A_local_->getLocalNumEntries()*(LevelOfFill_+1), 
@@ -511,8 +520,11 @@ void RILUK<MatrixType>::initialize ()
     }
 
     {
+      Teuchos::TimeMonitor timeMon3 (timer3);
       RCP<const crs_matrix_type> A_local_crs =
         rcp_dynamic_cast<const crs_matrix_type> (A_local_);
+      if (A_local_crs.is_null ()) printf("     VINH TEST: initialize() rank %d -- A_local_crs is null ...\n", myRank);
+      else printf("     VINH TEST: initialize() rank %d -- A_local_crs is valid ...\n", myRank);
       if (A_local_crs.is_null ()) {
         local_ordinal_type numRows = A_local_->getLocalNumRows();
         Array<size_t> entriesPerRow(numRows);
@@ -537,18 +549,55 @@ void RILUK<MatrixType>::initialize ()
       Graph_ = rcp (new Ifpack2::IlukGraph<crs_graph_type,kk_handle_type> (A_local_crs->getCrsGraph (),
                                                                            LevelOfFill_, 0, Overalloc_));
     }
+    timeval = timer3.totalElapsedTime();
+
+    MPI_Allreduce(&timeval,&max_out,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&min_out,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    avg_out /= nRanks;
+    if (myRank == 0) {
+      printf("     VINH TEST: initialize() -- copy entries into A_local_crs (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
+      fprintf(stderr,"     VINH TEST: initialize() -- copy entries into A_local_crs (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
+    }
+
+    {
+    Teuchos::TimeMonitor timeMon1 (timer1);
 
     if (this->isKokkosKernelsSpiluk_) Graph_->initialize (KernelHandle_);
     else Graph_->initialize ();
+    }
+    timeval = timer1.totalElapsedTime();
+  
+    MPI_Allreduce(&timeval,&max_out,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&min_out,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    avg_out /= nRanks;
+    if (myRank == 0) {
+      printf("     VINH TEST: initialize() -- Graph_initialize (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
+      fprintf(stderr,"     VINH TEST: initialize() -- Graph_initialize (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
+    }
 
+    {
+    Teuchos::TimeMonitor timeMon2 (timer2);
     allocate_L_and_U ();
     checkOrderingConsistency (*A_local_);
     L_solver_->setMatrix (L_);
     L_solver_->initialize ();
-    L_solver_->compute ();//NOTE: It makes sense to do compute here because only the nonzero pattern is involved in trisolve compute
+    L_solver_->compute ();//VINH: It makes sense to do compute here because only the nonzero pattern is involved in trisolve compute
     U_solver_->setMatrix (U_);
     U_solver_->initialize ();
-    U_solver_->compute ();//NOTE: It makes sense to do compute here because only the nonzero pattern is involved in trisolve compute
+    U_solver_->compute ();//VINH: It makes sense to do compute here because only the nonzero pattern is involved in trisolve compute
+    }
+    timeval = timer2.totalElapsedTime();
+
+    MPI_Allreduce(&timeval,&max_out,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&min_out,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    avg_out /= nRanks;
+    if (myRank == 0) {
+      printf("     VINH TEST: initialize() -- initialize &compute L, U trisolvers (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
+      fprintf(stderr,"     VINH TEST: initialize() -- initialize &compute L, U trisolvers (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
+    }
 
     // Do not call initAllValues. compute() always calls initAllValues to
     // fill L and U with possibly new numbers. initialize() is concerned
@@ -558,6 +607,7 @@ void RILUK<MatrixType>::initialize ()
   isInitialized_ = true;
   ++numInitialize_;
   initializeTime_ += (timer.wallTime() - startTime);
+  printf("     VINH TEST: initialize() End rank %d -- numInitialize %d, current init time %.8lf (sec.), accum init time %.8lf (sec.)\n", myRank, numInitialize_, timer.wallTime() - startTime, initializeTime_);
 }
 
 template<class MatrixType>
@@ -746,12 +796,20 @@ void RILUK<MatrixType>::compute ()
   Teuchos::Time timer ("RILUK::compute");
 
   // Start timing
+  struct timeval begin, end;//VINH TEST
+  int myRank = A_->getComm()->getRank();//VINH TEST
+  int nRanks = A_->getComm()->getSize();//VINH TEST
+  double timeval, max_out, min_out, avg_out;//VINH TEST
+  Teuchos::Time timer1 ("RILUK::compute-spiluk_numeric");//VINH TEST
+  Teuchos::Time timer3 ("RILUK::compute-make_local_crs");//VINH TEST
   Teuchos::TimeMonitor timeMon (timer);
+  
   double startTime = timer.wallTime();
 
   isComputed_ = false;
 
   if (!this->isKokkosKernelsSpiluk_) {
+    printf("     VINH TEST: compute() rank %d -- Serial ...\n", myRank);
     // Fill L and U with numbers. This supports nonzero pattern reuse by calling
     // initialize() once and then compute() multiple times.
     initAllValues (*A_local_);
@@ -904,9 +962,14 @@ void RILUK<MatrixType>::compute ()
     U_solver_->compute ();//NOTE: Only do compute if the pointer changed. Otherwise, do nothing
   }
   else {
-    {//Make sure values in A is picked up even in case of pattern reuse
+    printf("     VINH TEST: compute() rank %d -- KSPILUK ...\n", myRank);
+    {
+      Teuchos::TimeMonitor timeMon3 (timer3);//VINH TEST
+      //Make sure values in A is picked up even in case of pattern reuse
       RCP<const crs_matrix_type> A_local_crs =
         rcp_dynamic_cast<const crs_matrix_type> (A_local_);
+      if (A_local_crs.is_null ()) printf("     VINH TEST: compute() rank %d -- A_local_crs is null ...\n", myRank);
+      else printf("     VINH TEST: compute() rank %d -- A_local_crs is valid ...\n", myRank);
       if (A_local_crs.is_null ()) {
         local_ordinal_type numRows = A_local_->getLocalNumRows();
         Array<size_t> entriesPerRow(numRows);
@@ -933,7 +996,19 @@ void RILUK<MatrixType>::compute ()
       A_local_entries_ = lclMtx.graph.entries;
       A_local_values_  = lclMtx.values;
     }
+    timeval = timer3.totalElapsedTime();
 
+    MPI_Allreduce(&timeval,&max_out,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&min_out,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    avg_out /= nRanks;
+    if (myRank == 0) {
+      printf("     VINH TEST: compute() -- copy entries into A_local_crs (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
+      fprintf(stderr,"     VINH TEST: compute() -- copy entries into A_local_crs (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
+    }
+
+    {
+    Teuchos::TimeMonitor timeMon1 (timer1);//VINH TEST
     L_->resumeFill ();
     U_->resumeFill ();
 
@@ -962,16 +1037,42 @@ void RILUK<MatrixType>::compute ()
     
     L_->fillComplete (L_->getColMap (), A_local_->getRangeMap ());
     U_->fillComplete (A_local_->getDomainMap (), U_->getRowMap ());
-    
+    }
+    timeval = timer1.totalElapsedTime();
+  
+    MPI_Allreduce(&timeval,&max_out,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&min_out,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+    MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    avg_out /= nRanks;
+    if (myRank == 0) {
+      printf("     VINH TEST: compute() -- spiluk_numeric (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
+      fprintf(stderr,"     VINH TEST: compute() -- spiluk_numeric (sec.): %.8lf (min), %.8lf (avg), %.8lf (max).\n",min_out,avg_out,max_out);
+    }
+
+    gettimeofday( &begin, NULL );
     L_solver_->setMatrix (L_);
     L_solver_->compute ();//NOTE: Only do compute if the pointer changed. Otherwise, do nothing
     U_solver_->setMatrix (U_);
     U_solver_->compute ();//NOTE: Only do compute if the pointer changed. Otherwise, do nothing
+    gettimeofday( &end, NULL );
+    printf("     VINH TEST: compute() rank %d -- L,U solvers setMatrix+symbolic %.8lf (sec.)\n", myRank, 1.0 * ( end.tv_sec - begin.tv_sec ) + 1.0e-6 * ( end.tv_usec - begin.tv_usec ));
   }
+  printf("     VINH TEST: compute() Almost End rank %d -- Check L_solver_->isComputed() %d, U_solver_->isComputed() %d\n", myRank, L_solver_->isComputed(), U_solver_->isComputed());
 
   isComputed_ = true;
   ++numCompute_;
-  computeTime_ += (timer.wallTime() - startTime);
+  //computeTime_ += (timer.wallTime() - startTime);//ORIG
+  timeval = (timer.wallTime() - startTime);
+  computeTime_ += timeval;
+  printf("     VINH TEST: compute() End rank %d -- numCompute %d, current compute time %.8lf (sec.), accum compute time %.8lf (sec.)\n", myRank, numCompute_, timeval, computeTime_);
+  
+  MPI_Allreduce(&timeval,&max_out,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+  MPI_Allreduce(&timeval,&min_out,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+  MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+  avg_out /= nRanks;
+  if (myRank == 0) {
+    fprintf(stderr,"     VINH TEST: compute() End (sec.): numCompute %d, %.8lf (min), %.8lf (avg), %.8lf (max).\n",numCompute_, min_out,avg_out,max_out);
+  }
 }
 
 
@@ -1025,6 +1126,10 @@ apply (const Tpetra::MultiVector<scalar_type,local_ordinal_type,global_ordinal_t
   const scalar_type one = STS::one ();
   const scalar_type zero = STS::zero ();
 
+  //struct timeval begin, end;//VINH TEST
+  int myRank = A_->getComm()->getRank();//VINH TEST
+  int nRanks = A_->getComm()->getSize();//VINH TEST
+  double timeval, max_out, min_out, avg_out;//VINH TEST
   Teuchos::Time timer ("RILUK::apply");
   double startTime = timer.wallTime();
   { // Start timing
@@ -1092,7 +1197,18 @@ apply (const Tpetra::MultiVector<scalar_type,local_ordinal_type,global_ordinal_t
 #endif // HAVE_IFPACK2_DEBUG
 
   ++numApply_;
-  applyTime_ += (timer.wallTime() - startTime);
+  //applyTime_ += (timer.wallTime() - startTime);//ORIG
+  timeval = (timer.wallTime() - startTime);
+  applyTime_ += timeval;
+  printf("     VINH TEST: apply() End rank %d -- numApply %d, current apply time %.8lf (sec.), accum apply time %.8lf (sec.)\n", myRank, numApply_, timeval, applyTime_);
+
+  MPI_Allreduce(&timeval,&max_out,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+  MPI_Allreduce(&timeval,&min_out,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+  MPI_Allreduce(&timeval,&avg_out,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+  avg_out /= nRanks;
+  if (myRank == 0) {
+    fprintf(stderr,"     VINH TEST: apply() End (sec.): numApply %d, %.8lf (min), %.8lf (avg), %.8lf (max).\n",numApply_,min_out,avg_out,max_out);
+  }
 }
 
 

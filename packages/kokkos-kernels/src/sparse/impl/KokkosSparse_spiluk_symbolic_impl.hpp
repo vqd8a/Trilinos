@@ -358,6 +358,8 @@ void iluk_symbolic ( IlukHandle& thandle,
   level_sched (thandle, L_row_map, L_entries, nrows, level_list, level_ptr, level_idx, nlev);  
   
   thandle.set_symbolic_complete();
+  
+  std::cout << "              VINH TEST: spiluk_symbolic() -- LEntriesType " << typeid(LEntriesType).name() << ", ILU(k) fill_level: " << fill_lev << ", num levels: " << thandle.get_num_levels() << ", max num rows levels: " << thandle.get_level_maxrows() << std::endl;
 
   // Output check
 #ifdef SYMBOLIC_OUTPUT_INFO

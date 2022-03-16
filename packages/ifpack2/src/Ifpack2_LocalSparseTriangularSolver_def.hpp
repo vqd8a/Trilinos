@@ -52,6 +52,7 @@
 #ifdef HAVE_IFPACK2_SHYLU_NODEHTS
 # include "shylu_hts.hpp"
 #endif
+#include <sys/time.h>
 
 namespace Ifpack2 {
 
@@ -564,6 +565,7 @@ compute ()
 
   if (Teuchos::nonnull(kh_) && this->isKokkosKernelsSptrsv_)
   {
+    struct timeval begin, end;//VINH TEST
     auto A_crs = Teuchos::rcp_dynamic_cast<const crs_matrix_type> (A_);
     auto Alocal = A_crs->getLocalMatrixDevice();
     auto ptr    = Alocal.graph.row_map;
@@ -579,14 +581,19 @@ compute ()
     // CuSparse only supports int type ordinals
     if (std::is_same<Kokkos::Cuda, HandleExecSpace>::value && std::is_same<int,local_ordinal_type >::value)
     {
+      printf("          VINH TEST: trisolve compute() -- sptrsv_symbolic with SPTRSVAlgorithm::SPTRSV_CUSPARSE\n");
       kh_->create_sptrsv_handle(KokkosSparse::Experimental::SPTRSVAlgorithm::SPTRSV_CUSPARSE, numRows, is_lower_tri);
     }
     else
 #endif
     {
+      printf("          VINH TEST: trisolve compute() -- sptrsv_symbolic with SPTRSVAlgorithm::SEQLVLSCHD_TP1\n");
       kh_->create_sptrsv_handle(KokkosSparse::Experimental::SPTRSVAlgorithm::SEQLVLSCHD_TP1, numRows, is_lower_tri);
     }
+    gettimeofday( &begin, NULL );
     KokkosSparse::Experimental::sptrsv_symbolic(kh_.getRawPtr(), ptr, ind, val);
+    gettimeofday( &end, NULL );
+    printf("          VINH TEST: trisolve compute() -- sptrsv_symbolic %.8lf (sec.)\n", 1.0 * ( end.tv_sec - begin.tv_sec ) + 1.0e-6 * ( end.tv_usec - begin.tv_usec ));
   }
 
   isComputed_ = true;
@@ -1006,7 +1013,7 @@ setMatrix (const Teuchos::RCP<const row_matrix_type>& A)
       A_crs_ = A_crs;
       A_ = A;
     }
-
+ 
     if (Teuchos::nonnull (htsImpl_))
       htsImpl_->reset ();
   } // pointers are not the same
