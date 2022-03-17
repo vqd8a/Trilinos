@@ -474,8 +474,11 @@ void RILUK<MatrixType>::initialize ()
      "Tpetra::CrsMatrix, please call fillComplete on it (with the domain and "
      "range Maps, if appropriate) before calling this method.");
 
-  int myRank = A_->getComm()->getRank();//VINH TEST
-  int nRanks = A_->getComm()->getSize();//VINH TEST
+  //int myRank = A_->getComm()->getRank();//VINH TEST
+  //int nRanks = A_->getComm()->getSize();//VINH TEST
+  int myRank, nRanks;//VINH TEST
+  MPI_Comm_rank (MPI_COMM_WORLD, &myRank);//VINH TEST
+  MPI_Comm_size (MPI_COMM_WORLD, &nRanks);//VINH TEST
   double timeval, max_out, min_out, avg_out;//VINH TEST  
   Teuchos::Time timer ("RILUK::initialize");
   Teuchos::Time timer1 ("RILUK::initialize-graph_init");
@@ -797,8 +800,11 @@ void RILUK<MatrixType>::compute ()
 
   // Start timing
   struct timeval begin, end;//VINH TEST
-  int myRank = A_->getComm()->getRank();//VINH TEST
-  int nRanks = A_->getComm()->getSize();//VINH TEST
+  //int myRank = A_->getComm()->getRank();//VINH TEST
+  //int nRanks = A_->getComm()->getSize();//VINH TEST
+  int myRank, nRanks;//VINH TEST
+  MPI_Comm_rank (MPI_COMM_WORLD, &myRank);//VINH TEST
+  MPI_Comm_size (MPI_COMM_WORLD, &nRanks);//VINH TEST
   double timeval, max_out, min_out, avg_out;//VINH TEST
   Teuchos::Time timer1 ("RILUK::compute-spiluk_numeric");//VINH TEST
   Teuchos::Time timer3 ("RILUK::compute-make_local_crs");//VINH TEST
@@ -1127,8 +1133,11 @@ apply (const Tpetra::MultiVector<scalar_type,local_ordinal_type,global_ordinal_t
   const scalar_type zero = STS::zero ();
 
   //struct timeval begin, end;//VINH TEST
-  int myRank = A_->getComm()->getRank();//VINH TEST
-  int nRanks = A_->getComm()->getSize();//VINH TEST
+  //int myRank = A_->getComm()->getRank();//VINH TEST
+  //int nRanks = A_->getComm()->getSize();//VINH TEST
+  int myRank, nRanks;//VINH TEST
+  MPI_Comm_rank (MPI_COMM_WORLD, &myRank);//VINH TEST
+  MPI_Comm_size (MPI_COMM_WORLD, &nRanks);//VINH TEST
   double timeval, max_out, min_out, avg_out;//VINH TEST
   Teuchos::Time timer ("RILUK::apply");
   double startTime = timer.wallTime();
