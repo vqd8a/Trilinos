@@ -392,11 +392,11 @@ void iluk_numeric ( IlukHandle& thandle,
   HandleDeviceEntriesType level_idx = thandle.get_level_idx();
 
   using WorkViewType = Kokkos::View<nnz_lno_t**, Kokkos::Device<execution_space,memory_space>>;
-  
+
+  printf("              VINH TEST: spiluk_numeric() -- LValuesType %s, nnz_lno_t %s, level_maxrows: %d, nrows: %d, level_maxrows x nrows: %llu\n",  typeid(LValuesType).name(), typeid(nnz_lno_t).name(), thandle.get_level_maxrows(), nrows, (unsigned long long)thandle.get_level_maxrows()*(unsigned long long)nrows);  
+
   WorkViewType iw ( "iw", thandle.get_level_maxrows(), nrows );
   Kokkos::deep_copy(iw, nnz_lno_t(-1));
-
-  printf("              VINH TEST: spiluk_numeric() -- LValuesType %s, nnz_lno_t %s, level_maxrows: %d, nrows: %d, level_maxrows x nrows: %d\n",  typeid(LValuesType).name(), typeid(nnz_lno_t).name(), thandle.get_level_maxrows(), nrows, thandle.get_level_maxrows()*nrows);
 
   // Main loop must be performed sequential. Question: Try out Cuda's graph stuff to reduce kernel launch overhead
   for ( size_type lvl = 0; lvl < nlevels; ++lvl ) {
