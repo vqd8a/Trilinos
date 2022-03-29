@@ -113,6 +113,15 @@ void level_sched ( IlukHandle& thandle,
     if( maxrows < lnrows ) {
       maxrows = lnrows;
     }
+    if ((i < 20)|| (i >= (nlevels-20))) {
+      std::cout << "Level " << i+1 << "(has " << level_ptr(i+1) - level_ptr(i) << " rows): " << std::endl;
+      std::cout << "     ";
+      size_type rid_s = level_ptr(i);
+      size_type rid_e = level_ptr(i+1);
+      for (size_type rid = rid_s; rid < rid_e; ++rid)
+          printf("%d ", level_idx(rid));
+      printf("\n");
+    }
   }
 
   thandle.set_num_levels(nlevels);

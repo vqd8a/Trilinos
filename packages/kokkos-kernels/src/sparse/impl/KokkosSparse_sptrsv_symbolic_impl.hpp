@@ -306,6 +306,19 @@ Kokkos::Timer timer1;//VINH TEST
     Kokkos::deep_copy(diagonal_offsets, hdiagonal_offsets);
 
   std::cout << "              VINH TEST: sptrsv_lower_tri_symbolic() -- EntriesType " << typeid(EntriesType).name() << ", node_count = " << node_count << ", nlevel = " << level << ", npl.extent = " << nodes_per_level.extent(0) << std::endl;
+
+  size_type tmp_accum = 0;
+  for ( size_type i = 0; i < level; ++i ) {
+    size_type rid_offset = tmp_accum;
+    if ((i < 20)|| (i >= (level-20))) {
+      std::cout << "SPTRSV Level " << i+1 << " (has " << nodes_per_level(i)  <<  " rows): " << std::endl;
+      std::cout << "     ";
+      for (size_type rid = 0; rid < (size_type)nodes_per_level(i); ++rid)
+          printf("%d ", nodes_grouped_by_level(rid + rid_offset));
+      printf("\n");  
+    }
+    tmp_accum += nodes_per_level(i);
+  }
   
   // Extra check:
 #ifdef LVL_OUTPUT_INFO
