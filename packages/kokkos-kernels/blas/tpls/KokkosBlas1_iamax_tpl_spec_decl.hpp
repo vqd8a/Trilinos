@@ -469,44 +469,84 @@ using ROCBLAS_DEVICE_TYPE =
       INDEX_TYPE, LAYOUT, MEMSPACE, ETI_SPEC_AVAIL)
 
 KOKKOSBLAS1_DIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned long, Kokkos::LayoutLeft,
-                                         Kokkos::Experimental::HIPSpace, true)
+                                         Kokkos::HIPSpace, true)
 KOKKOSBLAS1_DIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned long, Kokkos::LayoutLeft,
-                                         Kokkos::Experimental::HIPSpace, false)
+                                         Kokkos::HIPSpace, false)
 
 KOKKOSBLAS1_SIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned long, Kokkos::LayoutLeft,
-                                         Kokkos::Experimental::HIPSpace, true)
+                                         Kokkos::HIPSpace, true)
 KOKKOSBLAS1_SIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned long, Kokkos::LayoutLeft,
-                                         Kokkos::Experimental::HIPSpace, false)
+                                         Kokkos::HIPSpace, false)
 
 KOKKOSBLAS1_ZIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned long, Kokkos::LayoutLeft,
-                                         Kokkos::Experimental::HIPSpace, true)
+                                         Kokkos::HIPSpace, true)
 KOKKOSBLAS1_ZIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned long, Kokkos::LayoutLeft,
-                                         Kokkos::Experimental::HIPSpace, false)
+                                         Kokkos::HIPSpace, false)
 
 KOKKOSBLAS1_CIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned long, Kokkos::LayoutLeft,
-                                         Kokkos::Experimental::HIPSpace, true)
+                                         Kokkos::HIPSpace, true)
 KOKKOSBLAS1_CIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned long, Kokkos::LayoutLeft,
-                                         Kokkos::Experimental::HIPSpace, false)
+                                         Kokkos::HIPSpace, false)
 
 KOKKOSBLAS1_DIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned int, Kokkos::LayoutLeft,
-                                         Kokkos::Experimental::HIPSpace, true)
+                                         Kokkos::HIPSpace, true)
 KOKKOSBLAS1_DIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned int, Kokkos::LayoutLeft,
-                                         Kokkos::Experimental::HIPSpace, false)
+                                         Kokkos::HIPSpace, false)
 
 KOKKOSBLAS1_SIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned int, Kokkos::LayoutLeft,
-                                         Kokkos::Experimental::HIPSpace, true)
+                                         Kokkos::HIPSpace, true)
 KOKKOSBLAS1_SIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned int, Kokkos::LayoutLeft,
-                                         Kokkos::Experimental::HIPSpace, false)
+                                         Kokkos::HIPSpace, false)
 
 KOKKOSBLAS1_ZIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned int, Kokkos::LayoutLeft,
-                                         Kokkos::Experimental::HIPSpace, true)
+                                         Kokkos::HIPSpace, true)
 KOKKOSBLAS1_ZIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned int, Kokkos::LayoutLeft,
-                                         Kokkos::Experimental::HIPSpace, false)
+                                         Kokkos::HIPSpace, false)
 
 KOKKOSBLAS1_CIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned int, Kokkos::LayoutLeft,
-                                         Kokkos::Experimental::HIPSpace, true)
+                                         Kokkos::HIPSpace, true)
 KOKKOSBLAS1_CIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned int, Kokkos::LayoutLeft,
-                                         Kokkos::Experimental::HIPSpace, false)
+                                         Kokkos::HIPSpace, false)
+
+KOKKOSBLAS1_DIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned long, Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS1_DIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned long, Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace, false)
+
+KOKKOSBLAS1_SIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned long, Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS1_SIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned long, Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace, false)
+
+KOKKOSBLAS1_ZIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned long, Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS1_ZIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned long, Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace, false)
+
+KOKKOSBLAS1_CIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned long, Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS1_CIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned long, Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace, false)
+
+KOKKOSBLAS1_DIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned int, Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS1_DIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned int, Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace, false)
+
+KOKKOSBLAS1_SIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned int, Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS1_SIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned int, Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace, false)
+
+KOKKOSBLAS1_ZIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned int, Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS1_ZIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned int, Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace, false)
+
+KOKKOSBLAS1_CIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned int, Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS1_CIAMAX_TPL_SPEC_DECL_ROCBLAS(unsigned int, Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace, false)
 
 }  // namespace Impl
 }  // namespace KokkosBlas

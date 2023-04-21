@@ -474,41 +474,45 @@ namespace Impl {
   KOKKOSBLAS3_XGEMM_ROCBLAS(Kokkos::complex<float>, rocblas_float_complex, \
                             rocblas_cgemm, LAYOUT, MEM_SPACE, ETI_SPEC_AVAIL)
 
-KOKKOSBLAS3_DGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::Experimental::HIPSpace,
-                          true)
-KOKKOSBLAS3_DGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::Experimental::HIPSpace,
-                          false)
-KOKKOSBLAS3_DGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::Experimental::HIPSpace,
-                          true)
-KOKKOSBLAS3_DGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::Experimental::HIPSpace,
-                          false)
+KOKKOSBLAS3_DGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::HIPSpace, true)
+KOKKOSBLAS3_DGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::HIPSpace, false)
+KOKKOSBLAS3_DGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::HIPSpace, true)
+KOKKOSBLAS3_DGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::HIPSpace, false)
 
-KOKKOSBLAS3_SGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::Experimental::HIPSpace,
-                          true)
-KOKKOSBLAS3_SGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::Experimental::HIPSpace,
-                          false)
-KOKKOSBLAS3_SGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::Experimental::HIPSpace,
-                          true)
-KOKKOSBLAS3_SGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::Experimental::HIPSpace,
-                          false)
+KOKKOSBLAS3_SGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::HIPSpace, true)
+KOKKOSBLAS3_SGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::HIPSpace, false)
+KOKKOSBLAS3_SGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::HIPSpace, true)
+KOKKOSBLAS3_SGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::HIPSpace, false)
 
-KOKKOSBLAS3_ZGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::Experimental::HIPSpace,
-                          true)
-KOKKOSBLAS3_ZGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::Experimental::HIPSpace,
-                          false)
-KOKKOSBLAS3_ZGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::Experimental::HIPSpace,
-                          true)
-KOKKOSBLAS3_ZGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::Experimental::HIPSpace,
-                          false)
+KOKKOSBLAS3_ZGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::HIPSpace, true)
+KOKKOSBLAS3_ZGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::HIPSpace, false)
+KOKKOSBLAS3_ZGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::HIPSpace,true)
+KOKKOSBLAS3_ZGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::HIPSpace, false)
 
-KOKKOSBLAS3_CGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::Experimental::HIPSpace,
-                          true)
-KOKKOSBLAS3_CGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::Experimental::HIPSpace,
-                          false)
-KOKKOSBLAS3_CGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::Experimental::HIPSpace,
-                          true)
-KOKKOSBLAS3_CGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::Experimental::HIPSpace,
-                          false)
+KOKKOSBLAS3_CGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::HIPSpace, true)
+KOKKOSBLAS3_CGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::HIPSpace, false)
+KOKKOSBLAS3_CGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::HIPSpace, true)
+KOKKOSBLAS3_CGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::HIPSpace, false)
+
+KOKKOSBLAS3_DGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS3_DGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::HIPManagedSpace, false)
+KOKKOSBLAS3_DGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS3_DGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::HIPManagedSpace, false)
+
+KOKKOSBLAS3_SGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS3_SGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::HIPManagedSpace, false)
+KOKKOSBLAS3_SGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS3_SGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::HIPManagedSpace, false)
+
+KOKKOSBLAS3_ZGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS3_ZGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::HIPManagedSpace, false)
+KOKKOSBLAS3_ZGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::HIPManagedSpace,true)
+KOKKOSBLAS3_ZGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::HIPManagedSpace, false)
+
+KOKKOSBLAS3_CGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS3_CGEMM_ROCBLAS(Kokkos::LayoutLeft, Kokkos::HIPManagedSpace, false)
+KOKKOSBLAS3_CGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS3_CGEMM_ROCBLAS(Kokkos::LayoutRight, Kokkos::HIPManagedSpace, false)
 
 }  // namespace Impl
 }  // namespace KokkosBlas

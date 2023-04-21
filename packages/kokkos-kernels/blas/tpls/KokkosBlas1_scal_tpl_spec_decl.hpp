@@ -314,24 +314,44 @@ namespace Impl {
       MEMSPACE, ETI_SPEC_AVAIL)
 
 KOKKOSBLAS1_DSCAL_TPL_SPEC_DECL_ROCBLAS(Kokkos::LayoutLeft,
-                                        Kokkos::Experimental::HIPSpace, true)
+                                        Kokkos::HIPSpace, true)
 KOKKOSBLAS1_DSCAL_TPL_SPEC_DECL_ROCBLAS(Kokkos::LayoutLeft,
-                                        Kokkos::Experimental::HIPSpace, false)
+                                        Kokkos::HIPSpace, false)
 
 KOKKOSBLAS1_SSCAL_TPL_SPEC_DECL_ROCBLAS(Kokkos::LayoutLeft,
-                                        Kokkos::Experimental::HIPSpace, true)
+                                        Kokkos::HIPSpace, true)
 KOKKOSBLAS1_SSCAL_TPL_SPEC_DECL_ROCBLAS(Kokkos::LayoutLeft,
-                                        Kokkos::Experimental::HIPSpace, false)
+                                        Kokkos::HIPSpace, false)
 
 KOKKOSBLAS1_ZSCAL_TPL_SPEC_DECL_ROCBLAS(Kokkos::LayoutLeft,
-                                        Kokkos::Experimental::HIPSpace, true)
+                                        Kokkos::HIPSpace, true)
 KOKKOSBLAS1_ZSCAL_TPL_SPEC_DECL_ROCBLAS(Kokkos::LayoutLeft,
-                                        Kokkos::Experimental::HIPSpace, false)
+                                        Kokkos::HIPSpace, false)
 
 KOKKOSBLAS1_CSCAL_TPL_SPEC_DECL_ROCBLAS(Kokkos::LayoutLeft,
-                                        Kokkos::Experimental::HIPSpace, true)
+                                        Kokkos::HIPSpace, true)
 KOKKOSBLAS1_CSCAL_TPL_SPEC_DECL_ROCBLAS(Kokkos::LayoutLeft,
-                                        Kokkos::Experimental::HIPSpace, false)
+                                        Kokkos::HIPSpace, false)
+
+KOKKOSBLAS1_DSCAL_TPL_SPEC_DECL_ROCBLAS(Kokkos::LayoutLeft,
+                                        Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS1_DSCAL_TPL_SPEC_DECL_ROCBLAS(Kokkos::LayoutLeft,
+                                        Kokkos::HIPManagedSpace, false)
+
+KOKKOSBLAS1_SSCAL_TPL_SPEC_DECL_ROCBLAS(Kokkos::LayoutLeft,
+                                        Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS1_SSCAL_TPL_SPEC_DECL_ROCBLAS(Kokkos::LayoutLeft,
+                                        Kokkos::HIPManagedSpace, false)
+
+KOKKOSBLAS1_ZSCAL_TPL_SPEC_DECL_ROCBLAS(Kokkos::LayoutLeft,
+                                        Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS1_ZSCAL_TPL_SPEC_DECL_ROCBLAS(Kokkos::LayoutLeft,
+                                        Kokkos::HIPManagedSpace, false)
+
+KOKKOSBLAS1_CSCAL_TPL_SPEC_DECL_ROCBLAS(Kokkos::LayoutLeft,
+                                        Kokkos::HIPManagedSpace, true)
+KOKKOSBLAS1_CSCAL_TPL_SPEC_DECL_ROCBLAS(Kokkos::LayoutLeft,
+                                        Kokkos::HIPManagedSpace, false)
 
 }  // namespace Impl
 }  // namespace KokkosBlas
