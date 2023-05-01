@@ -618,12 +618,13 @@ template<class HandleType, class ZViewType, class RHSViewType>
 inline
 void back_solve6(HandleType& ahandle, ZViewType& Z, RHSViewType& RHS)
 {
-  if (ahandle.get_nrhs() <= ahandle.get_nprocs_row()) {
-    back_solve_rhs_pipelined_comm(ahandle, Z, RHS);
-  }
-  else {
+  MPI_Barrier(MPI_COMM_WORLD);
+  //if (ahandle.get_nrhs() <= ahandle.get_nprocs_row()) {
+  //  back_solve_rhs_pipelined_comm(ahandle, Z, RHS);
+  //}
+  //else {
     back_solve_currcol_bcast(ahandle, Z, RHS);
-  }
+  //}
 }
 
 }//namespace Adelus
