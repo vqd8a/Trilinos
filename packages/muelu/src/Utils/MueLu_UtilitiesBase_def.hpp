@@ -346,8 +346,8 @@ namespace MueLu {
         using local_vector_type = typename Vector::dual_view_type::t_dev_um;
         using local_matrix_type = typename Matrix::local_matrix_type;
         using execution_space   = typename local_vector_type::execution_space;
-        using rowmap_type       = typename local_matrix_type::row_map_type;
-        using entries_type      = typename local_matrix_type::index_type;
+        // using rowmap_type       = typename local_matrix_type::row_map_type;
+        // using entries_type      = typename local_matrix_type::index_type;
         using values_type       = typename local_matrix_type::values_type;
         using scalar_type       = typename values_type::non_const_value_type;
         using mag_type          = typename Kokkos::ArithTraits<scalar_type>::mag_type;
@@ -951,7 +951,6 @@ namespace MueLu {
 
 
     if(helpers::isTpetraBlockCrs(A)) {
-#ifdef HAVE_MUELU_TPETRA
       const Tpetra::BlockCrsMatrix<SC,LO,GO,NO> & Am = helpers::Op2TpetraBlockCrs(A);
       auto b_graph      = Am.getCrsGraph().getLocalGraphDevice();
       auto b_rowptr     = Am.getCrsGraph().getLocalRowPtrsDevice();
@@ -988,9 +987,6 @@ namespace MueLu {
                            });
 
       return boundaryNodes;
-#else
-      throw Exceptions::RuntimeError("BlockCrs requires Tpetra");
-#endif
     }
     else {
       auto localMatrix = A.getLocalMatrixDevice();

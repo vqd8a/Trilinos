@@ -1343,15 +1343,17 @@ fourthKindApplyImpl (const op_type& A,
     betas = optimalWeightsImpl<ScalarType>(numIters);
   }
 
-  const ST invEig = 1.0 / (lambdaMax * boostFactor_);
+  const ST invEig = MT(1) / (lambdaMax * boostFactor_);
 
   // Fetch cached temporary (multi)vector.
   Teuchos::RCP<MV> Z_ptr = makeTempMultiVector (B);
   MV& Z = *Z_ptr;
   
   // Store 4th-kind result (needed as temporary for bootstrapping opt. 4th-kind Chebyshev)
-  MV X4 (B.getMap (), B.getNumVectors (), false);
-  
+  // Fetch the second cached temporary (multi)vector.
+  Teuchos::RCP<MV> X4_ptr = makeSecondTempMultiVector (B);
+  MV& X4 = *X4_ptr;
+
   // Special case for the first iteration.
   if (! zeroStartingSolution_) {
     
@@ -1364,7 +1366,7 @@ fourthKindApplyImpl (const op_type& A,
     }
     // Z := (4/3 * invEig)*D_inv*(B-A*X4)
     // X4 := X4 + Z
-    ck_->compute (Z, 4.0/3.0 * invEig, const_cast<V&> (D_inv),
+    ck_->compute (Z, MT(4.0/3.0) * invEig, const_cast<V&> (D_inv),
                    const_cast<MV&> (B), X4, STS::zero());
 
     // X := X + beta[0] * Z
@@ -1372,7 +1374,7 @@ fourthKindApplyImpl (const op_type& A,
   }
   else {
     // Z := (4/3 * invEig)*D_inv*B and X := 0 + Z.
-    firstIterationWithZeroStartingSolution (Z, 4.0/3.0 * invEig, D_inv, B, X4);
+    firstIterationWithZeroStartingSolution (Z, MT(4.0/3.0) * invEig, D_inv, B, X4);
 
     // X := 0 + beta * Z
     X.update (betas[0], Z, STS::zero());
@@ -1385,7 +1387,7 @@ fourthKindApplyImpl (const op_type& A,
 
   for (int i = 1; i < numIters; ++i) {
     const ST zScale = (2.0 * i - 1.0) / (2.0 * i + 3.0);
-    const ST rScale = (8.0 * i + 4.0) / (2.0 * i + 3.0) * invEig;
+    const ST rScale = MT((8.0 * i + 4.0) / (2.0 * i + 3.0)) * invEig;
     
     // Z := rScale*D_inv*(B - A*X4) + zScale*Z.
     // X4 := X4 + Z
@@ -1652,6 +1654,23 @@ makeTempMultiVector (const MV& B)
   }
   return W_;
 }
+
+template<class ScalarType, class MV>
+Teuchos::RCP<MV>
+Chebyshev<ScalarType, MV>::
+makeSecondTempMultiVector (const MV& B)
+{
+  // ETP 02/08/17:  We must check not only if the temporary vectors are
+  // null, but also if the number of columns match, since some multi-RHS
+  // solvers (e.g., Belos) may call apply() with different numbers of columns.
+
+  const size_t B_numVecs = B.getNumVectors ();
+  if (W2_.is_null () || W2_->getNumVectors () != B_numVecs) {
+    W2_ = Teuchos::rcp (new MV (B.getMap (), B_numVecs, false));
+  }
+  return W2_;
+}
+
 
 template<class ScalarType, class MV>
 std::string
