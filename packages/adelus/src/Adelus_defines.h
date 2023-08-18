@@ -54,7 +54,7 @@
 #define OVERLAP
 
 //#define ADELUS_PERM_MAT_FORWARD_COPY_TO_HOST //NOTE: for perf comparison only
-
+#define ADELUS_SHOW_TIMING_DETAILS
 //  ------------------ Define Data Types --------------------------
 //  ------------------ Define Constants and Operations ------------
 #ifdef SREAL

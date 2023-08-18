@@ -438,7 +438,7 @@ void back_solve_currcol_bcast(HandleType& ahandle, ZViewType& Z, RHSViewType& RH
   double allocviewtime,eliminaterhstime,bcastrowtime,updrhstime,bcastcoltime,copycoltime;
   double totalsolvetime;
 #if defined(ADELUS_HOST_PINNED_MEM_MPI) && (defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP))
-  double copyhostpinnedtime;
+  double copyhostpinnedtime1, copyhostpinnedtime2;
 #endif
 #endif
 
@@ -449,7 +449,8 @@ void back_solve_currcol_bcast(HandleType& ahandle, ZViewType& Z, RHSViewType& RH
 #ifdef GET_TIMING
   allocviewtime=eliminaterhstime=bcastrowtime=updrhstime=bcastcoltime=copycoltime=0.0;
 #if defined(ADELUS_HOST_PINNED_MEM_MPI) && (defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP))
-  copyhostpinnedtime=0.0;
+  copyhostpinnedtime1=0.0;
+  copyhostpinnedtime2=0.0;
 #endif
 
   t1 = MPI_Wtime();
@@ -487,6 +488,7 @@ void back_solve_currcol_bcast(HandleType& ahandle, ZViewType& Z, RHSViewType& RH
                          Kokkos::subview(Z, Kokkos::make_pair(0, end_row), k/nprocs_row) );
     }
 #ifdef GET_TIMING
+    Kokkos::fence();
     copycoltime += (MPI_Wtime()-t1);
 #endif
 
@@ -496,11 +498,13 @@ void back_solve_currcol_bcast(HandleType& ahandle, ZViewType& Z, RHSViewType& RH
 #endif
     Kokkos::deep_copy(h_curr_col,curr_col);
 #ifdef GET_TIMING
-    copyhostpinnedtime += (MPI_Wtime()-t1);
+    Kokkos::fence();
+    copyhostpinnedtime1 += (MPI_Wtime()-t1);
 #endif
 #endif
 
 #ifdef GET_TIMING
+    MPI_Barrier(comm);
     t1 = MPI_Wtime();
 #endif
     //Step 2: broadcast the current column to all ranks in the row_comm
@@ -510,6 +514,8 @@ void back_solve_currcol_bcast(HandleType& ahandle, ZViewType& Z, RHSViewType& RH
     MPI_Bcast(reinterpret_cast<char *>(curr_col.data()), end_row*sizeof(ADELUS_DATA_TYPE), MPI_CHAR, k_col, row_comm);
 #endif
 #ifdef GET_TIMING
+    Kokkos::fence();
+    MPI_Barrier(comm);
     bcastcoltime += (MPI_Wtime()-t1);
 #endif
 
@@ -519,7 +525,8 @@ void back_solve_currcol_bcast(HandleType& ahandle, ZViewType& Z, RHSViewType& RH
 #endif
     Kokkos::deep_copy(curr_col,h_curr_col);
 #ifdef GET_TIMING
-    copyhostpinnedtime += (MPI_Wtime()-t1);
+    Kokkos::fence();
+    copyhostpinnedtime1 += (MPI_Wtime()-t1);
 #endif
 #endif
 
@@ -537,6 +544,7 @@ void back_solve_currcol_bcast(HandleType& ahandle, ZViewType& Z, RHSViewType& RH
       }
     }
 #ifdef GET_TIMING
+    Kokkos::fence();
     eliminaterhstime += (MPI_Wtime()-t1);
 #endif
 
@@ -550,11 +558,13 @@ void back_solve_currcol_bcast(HandleType& ahandle, ZViewType& Z, RHSViewType& RH
 #endif
         Kokkos::deep_copy(h_rhs_row,rhs_row);
 #ifdef GET_TIMING
-        copyhostpinnedtime += (MPI_Wtime()-t1);
+        Kokkos::fence();
+        copyhostpinnedtime2 += (MPI_Wtime()-t1);
 #endif
 #endif
 
 #ifdef GET_TIMING
+        MPI_Barrier(comm);
         t1 = MPI_Wtime();
 #endif
         //Step 4: broadcast elimination results to all ranks in col_comm
@@ -565,6 +575,8 @@ void back_solve_currcol_bcast(HandleType& ahandle, ZViewType& Z, RHSViewType& RH
 #endif
 
 #ifdef GET_TIMING
+        Kokkos::fence();
+        MPI_Barrier(comm);
         bcastrowtime += (MPI_Wtime()-t1);
 #endif
 
@@ -574,7 +586,8 @@ void back_solve_currcol_bcast(HandleType& ahandle, ZViewType& Z, RHSViewType& RH
 #endif
         Kokkos::deep_copy(rhs_row,h_rhs_row);
 #ifdef GET_TIMING
-        copyhostpinnedtime += (MPI_Wtime()-t1);
+        Kokkos::fence();
+        copyhostpinnedtime2 += (MPI_Wtime()-t1);
 #endif
 #endif
 
@@ -588,6 +601,7 @@ void back_solve_currcol_bcast(HandleType& ahandle, ZViewType& Z, RHSViewType& RH
 
         KokkosBlas::gemm("N","N",d_min_one, A_view, B_view, d_one, C_view); Kokkos::fence();
 #ifdef GET_TIMING
+        Kokkos::fence();
         updrhstime += (MPI_Wtime()-t1);
 #endif
       }//end of (k >= 1)
@@ -608,7 +622,8 @@ void back_solve_currcol_bcast(HandleType& ahandle, ZViewType& Z, RHSViewType& RH
   showtime(ahandle.get_comm_id(), comm, me, ahandle.get_nprocs_cube(), "Time to bcast temp row",&bcastrowtime);
   showtime(ahandle.get_comm_id(), comm, me, ahandle.get_nprocs_cube(), "Time to update rhs",&updrhstime);
 #if defined(ADELUS_HOST_PINNED_MEM_MPI) && (defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP))
-  showtime(ahandle.get_comm_id(), comm, me, ahandle.get_nprocs_cube(), "Time to copy host pinned mem <--> dev mem",&copyhostpinnedtime);   
+  showtime(ahandle.get_comm_id(), comm, me, ahandle.get_nprocs_cube(), "Time to copy host pinned mem <--> dev mem (1)",&copyhostpinnedtime1);
+  showtime(ahandle.get_comm_id(), comm, me, ahandle.get_nprocs_cube(), "Time to copy host pinned mem <--> dev mem (2)",&copyhostpinnedtime2);
 #endif 
   showtime(ahandle.get_comm_id(), comm, me, ahandle.get_nprocs_cube(), "Total time in solve",&totalsolvetime);
 #endif
@@ -618,12 +633,14 @@ template<class HandleType, class ZViewType, class RHSViewType>
 inline
 void back_solve6(HandleType& ahandle, ZViewType& Z, RHSViewType& RHS)
 {
-  if (ahandle.get_nrhs() <= ahandle.get_nprocs_row()) {
-    back_solve_rhs_pipelined_comm(ahandle, Z, RHS);
-  }
-  else {
+  MPI_Barrier(MPI_COMM_WORLD);
+  //if (ahandle.get_nrhs() <= ahandle.get_nprocs_row()) {
+  //  back_solve_rhs_pipelined_comm(ahandle, Z, RHS);
+  //}
+  //else {
+    fprintf(stderr, "Always use back_solve_currcol_bcast\n");
     back_solve_currcol_bcast(ahandle, Z, RHS);
-  }
+  //}
 }
 
 }//namespace Adelus
