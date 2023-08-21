@@ -127,15 +127,15 @@ KOKKOSBLAS1_SCAL_TPL_SPEC_AVAIL_ROCBLAS(Kokkos::complex<float>,
                                         Kokkos::LayoutLeft, Kokkos::HIP,
                                         Kokkos::HIPSpace)
 
-KOKKOSBLAS1_SCAL_TPL_SPEC_AVAIL_ROCBLAS(double, Kokkos::LayoutLeft,
+KOKKOSBLAS1_SCAL_TPL_SPEC_AVAIL_ROCBLAS(double, Kokkos::LayoutLeft, Kokkos::HIP,
                                         Kokkos::HIPManagedSpace)
-KOKKOSBLAS1_SCAL_TPL_SPEC_AVAIL_ROCBLAS(float, Kokkos::LayoutLeft,
+KOKKOSBLAS1_SCAL_TPL_SPEC_AVAIL_ROCBLAS(float, Kokkos::LayoutLeft, Kokkos::HIP,
                                         Kokkos::HIPManagedSpace)
 KOKKOSBLAS1_SCAL_TPL_SPEC_AVAIL_ROCBLAS(Kokkos::complex<double>,
-                                        Kokkos::LayoutLeft,
+                                        Kokkos::LayoutLeft, Kokkos::HIP,
                                         Kokkos::HIPManagedSpace)
 KOKKOSBLAS1_SCAL_TPL_SPEC_AVAIL_ROCBLAS(Kokkos::complex<float>,
-                                        Kokkos::LayoutLeft,
+                                        Kokkos::LayoutLeft, Kokkos::HIP,
                                         Kokkos::HIPManagedSpace)
 
 #endif
