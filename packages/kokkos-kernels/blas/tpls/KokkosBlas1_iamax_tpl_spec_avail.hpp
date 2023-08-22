@@ -173,6 +173,30 @@ KOKKOSBLAS1_IAMAX_TPL_SPEC_AVAIL_ROCBLAS(unsigned long, Kokkos::complex<float>,
 KOKKOSBLAS1_IAMAX_TPL_SPEC_AVAIL_ROCBLAS(unsigned int, Kokkos::complex<float>,
                                          Kokkos::LayoutLeft, Kokkos::HIPSpace)
 
+KOKKOSBLAS1_IAMAX_TPL_SPEC_AVAIL_ROCBLAS(unsigned long, double,
+                                         Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace)
+KOKKOSBLAS1_IAMAX_TPL_SPEC_AVAIL_ROCBLAS(unsigned int, double,
+                                         Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace)
+KOKKOSBLAS1_IAMAX_TPL_SPEC_AVAIL_ROCBLAS(unsigned long, float,
+                                         Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace)
+KOKKOSBLAS1_IAMAX_TPL_SPEC_AVAIL_ROCBLAS(unsigned int, float,
+                                         Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace)
+KOKKOSBLAS1_IAMAX_TPL_SPEC_AVAIL_ROCBLAS(unsigned long, Kokkos::complex<double>,
+                                         Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace)
+KOKKOSBLAS1_IAMAX_TPL_SPEC_AVAIL_ROCBLAS(unsigned int, Kokkos::complex<double>,
+                                         Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace)
+KOKKOSBLAS1_IAMAX_TPL_SPEC_AVAIL_ROCBLAS(unsigned long, Kokkos::complex<float>,
+                                         Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace)
+KOKKOSBLAS1_IAMAX_TPL_SPEC_AVAIL_ROCBLAS(unsigned int, Kokkos::complex<float>,
+                                         Kokkos::LayoutLeft,
+                                         Kokkos::HIPManagedSpace)
 #endif
 
 }  // namespace Impl
