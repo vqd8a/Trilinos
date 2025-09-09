@@ -197,6 +197,13 @@ AdditiveSchwarz<MatrixType, LocalInverseType>::
 template <class MatrixType, class LocalInverseType>
 AdditiveSchwarz<MatrixType, LocalInverseType>::
     AdditiveSchwarz(const Teuchos::RCP<const row_matrix_type>& A,
+                    const Teuchos::RCP<const coord_type>& coordinates)
+  : Matrix_(A)
+  , Coordinates_(coordinates) {}
+
+template <class MatrixType, class LocalInverseType>
+AdditiveSchwarz<MatrixType, LocalInverseType>::
+    AdditiveSchwarz(const Teuchos::RCP<const row_matrix_type>& A,
                     const int overlapLevel)
   : Matrix_(A)
   , OverlapLevel_(overlapLevel) {}
@@ -1524,6 +1531,15 @@ void AdditiveSchwarz<MatrixType, LocalInverseType>::setup() {
             << innerName << "\".");
     innerPrec->setMatrix(innerMatrix_);
 
+    if ((innerName.compare("RILUK") == 0) && (Coordinates_ == Teuchos::null)) {
+      printf("After construct the AdditiveSchwarzFilter: Inverse_ is null, Coordinates_ is null, innerName %s, innerPrec type %s\n", innerName.c_str(), typeid(decltype(innerPrec)).name());
+    }
+    if ((innerName.compare("RILUK") == 0) && (Coordinates_ != Teuchos::null)) {
+      fprintf(stderr,"After construct the AdditiveSchwarzFilter: Inverse_ is null, Coordinates_ is NOT null, innerName %s, innerPrec type %s\n", innerName.c_str(), typeid(decltype(innerPrec)).name());
+      auto ifpack2_innerPrec = Teuchos::rcp_dynamic_cast< Ifpack2::Details::LinearSolver<scalar_type,local_ordinal_type,global_ordinal_type,node_type> > (innerPrec);
+      ifpack2_innerPrec->setCoord(Coordinates_);
+    }
+
     // Extract and apply the sublist of parameters to give to the
     // inner solver, if there is such a sublist of parameters.
     std::pair<Teuchos::ParameterList, bool> result = innerPrecParams();
@@ -1538,6 +1554,12 @@ void AdditiveSchwarz<MatrixType, LocalInverseType>::setup() {
     // preconditioner's current matrix, so give the inner
     // preconditioner the new inner matrix.
     Inverse_->setMatrix(innerMatrix_);
+
+    const std::string innerName = innerPrecName();
+    if ((innerName.compare("RILUK") == 0) && (Coordinates_ != Teuchos::null)) {
+      auto ifpack2_Inverse = Teuchos::rcp_dynamic_cast< Ifpack2::Details::LinearSolver<scalar_type,local_ordinal_type,global_ordinal_type,node_type> > (Inverse_);
+      ifpack2_Inverse->setCoord(Coordinates_);
+    }
   }
   TEUCHOS_TEST_FOR_EXCEPTION(
       Inverse_.is_null(), std::logic_error,

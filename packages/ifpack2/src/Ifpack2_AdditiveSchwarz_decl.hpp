@@ -302,6 +302,11 @@ class AdditiveSchwarz : virtual public Preconditioner<typename MatrixType::scala
       Tpetra::CrsMatrix<scalar_type, local_ordinal_type,
                         global_ordinal_type, node_type>;
 
+  //! The Tpetra::MultiVector specialization used for containing coordinates
+  using coord_type =
+      Tpetra::MultiVector<magnitude_type, local_ordinal_type,
+                          global_ordinal_type, node_type>;
+
   //@}
   // \name Constructors and destructor
   //@{
@@ -310,6 +315,13 @@ class AdditiveSchwarz : virtual public Preconditioner<typename MatrixType::scala
   ///
   /// \param A [in] The matrix to be preconditioned.
   AdditiveSchwarz(const Teuchos::RCP<const row_matrix_type>& A);
+
+  /// \brief Constructor that takes a matrix and its rows' coordinates.
+  ///
+  /// \param A [in] The matrix to be preconditioned.
+  /// \param coordinates [in] Coordinates associated with matrix rows
+  AdditiveSchwarz(const Teuchos::RCP<const row_matrix_type>& A,
+                  const Teuchos::RCP<const coord_type>& coordinates);
 
   /// \brief Constructor that takes a matrix and the level of overlap.
   ///
@@ -757,6 +769,10 @@ class AdditiveSchwarz : virtual public Preconditioner<typename MatrixType::scala
 
   //! The "inner matrix" given to the inner (subdomain) solver.
   Teuchos::RCP<row_matrix_type> innerMatrix_;
+
+  /// \brief The coordinates associated with the input matrix rows.
+  ///   (only used for RCB distribution into streams in RILUK)
+  Teuchos::RCP<const coord_type> Coordinates_ = Teuchos::null;
 
   //! If true, the preconditioner has been successfully initialized.
   bool IsInitialized_ = false;
