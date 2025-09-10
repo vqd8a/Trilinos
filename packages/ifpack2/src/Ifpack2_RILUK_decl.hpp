@@ -648,6 +648,7 @@ class RILUK : virtual public Ifpack2::Preconditioner<typename MatrixType::scalar
   mutable std::unique_ptr<MV> reordered_x_;
   mutable std::unique_ptr<MV> reordered_y_;
   perm_view_t perm_rcb;
+  coors_view_t coors_rcb;
 };
 
 // NOTE (mfh 11 Feb 2015) This used to exist in order to deal with

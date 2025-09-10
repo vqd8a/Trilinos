@@ -394,9 +394,6 @@ void RILUK<MatrixType>::
     if (params.isParameter("fact: kspiluk streams use rcb"))
       use_rcb = params.get<bool>("fact: kspiluk streams use rcb");
     hasStreamsWithRCB_ = use_rcb && (A_coordinates_ != Teuchos::null);
-
-    if (hasStreamsWithRCB_) printf("Use RCB is set from xml file and A_coordinates_ is valid\n");
-    else printf("Use RCB is NOT set from xml file OR A_coordinates_ is NULL\n");
   } else {
     this->isKokkosKernelsStream_ = false;
   }
@@ -564,11 +561,10 @@ void RILUK<MatrixType>::initialize() {
         if (!hasStreamReordered_) {
           if (hasStreamsWithRCB_) {
             auto A_coordinates_lcl = A_coordinates_->getLocalViewDevice(Tpetra::Access::ReadOnly);
-            local_ordinal_type N = static_cast<local_ordinal_type>(A_coordinates_lcl.extent(0));
-            perm_rcb = perm_view_t("perm_rcb", N);
-            coors_view_t mesh("mesh", N, static_cast<local_ordinal_type>(A_coordinates_lcl.extent(1)));
-            Kokkos::deep_copy(mesh, A_coordinates_lcl);
-            KokkosSparse::Impl::kk_extract_diagonal_blocks_crsmatrix_with_rcb_sequential(lclMtx, mesh,
+            perm_rcb = perm_view_t(Kokkos::view_alloc(Kokkos::WithoutInitializing, "perm_rcb"), A_coordinates_lcl.extent(0));
+            coors_rcb = coors_view_t(Kokkos::view_alloc(Kokkos::WithoutInitializing, "coors_rcb"), A_coordinates_lcl.extent(0), A_coordinates_lcl.extent(1));
+            Kokkos::deep_copy(coors_rcb, A_coordinates_lcl);
+            KokkosSparse::Impl::kk_extract_diagonal_blocks_crsmatrix_with_rcb_sequential(lclMtx, coors_rcb,
                                                                                          A_local_diagblks_v_, perm_rcb);
           } else {
             KokkosSparse::Impl::kk_extract_diagonal_blocks_crsmatrix_sequential(lclMtx, A_local_diagblks_v_);
@@ -1024,7 +1020,10 @@ void RILUK<MatrixType>::compute_kkspiluk_stream() {
     KernelHandle_rawptr_v_[i] = KernelHandle_v_[i].getRawPtr();
   }
 
-  /*{
+  if (hasStreamReordered_) {
+    // NOTE: For now, only do the value copying if RCM reordering is enabled in streams.
+    //       Otherwise, value copying was taken care prior to entering this function.
+    //       TODO: revisit this later.
     auto lclMtx = A_local_crs_->getLocalMatrixDevice();
     // A_local_diagblks was already setup during initialize, just copy the corresponding
     // values from A_local_crs_ in parallel now.
@@ -1058,7 +1057,7 @@ void RILUK<MatrixType>::compute_kkspiluk_stream() {
             });
           });
     }
-  }*/
+  }
 
   KokkosSparse::Experimental::spiluk_numeric_streams(exec_space_instances_, KernelHandle_rawptr_v_, LevelOfFill_,
                                                      A_local_diagblks_rowmap_v_, A_local_diagblks_entries_v_, A_local_diagblks_values_v_,
@@ -1130,7 +1129,14 @@ void RILUK<MatrixType>::compute() {
     } else {
       // If streams are on, we potentially have to refresh A_local_diagblks_values_v_
       auto lclMtx = A_local_crs_->getLocalMatrixDevice();
-      KokkosSparse::Impl::kk_extract_diagonal_blocks_crsmatrix_sequential(lclMtx, A_local_diagblks_v_, hasStreamReordered_);
+      if (!hasStreamsWithRCB_) {
+        KokkosSparse::Impl::kk_extract_diagonal_blocks_crsmatrix_sequential(lclMtx, A_local_diagblks_v_, hasStreamReordered_);
+      } else {
+        auto A_coordinates_lcl = A_coordinates_->getLocalViewDevice(Tpetra::Access::ReadOnly);
+        Kokkos::deep_copy(coors_rcb, A_coordinates_lcl);
+        KokkosSparse::Impl::kk_extract_diagonal_blocks_crsmatrix_with_rcb_sequential(lclMtx, coors_rcb,
+                                                                                     A_local_diagblks_v_, perm_rcb);
+      }
       for (int i = 0; i < num_streams_; i++) {
         A_local_diagblks_values_v_[i] = A_local_diagblks_v_[i].values;
       }
@@ -1235,7 +1241,7 @@ void RILUK<MatrixType>::
               stream_begin = stream_end;
             }
           } else { // hasStreamsWithRCB_
-            Kokkos::parallel_for( Kokkos::RangePolicy<execution_space>(0, static_cast<int>(X_lcl.extent(0))), KOKKOS_LAMBDA ( const int& ii ) {
+            Kokkos::parallel_for(Kokkos::RangePolicy<execution_space>(0, static_cast<int>(X_lcl.extent(0))), KOKKOS_LAMBDA (const int& ii) {
               ReorderedX_lcl(perm_rcb(ii), 0) = X_lcl(ii, 0);
             });
           }
@@ -1274,7 +1280,7 @@ void RILUK<MatrixType>::
               stream_begin = stream_end;
             }
           } else { // hasStreamsWithRCB_
-            Kokkos::parallel_for( Kokkos::RangePolicy<execution_space>(0, static_cast<int>(Y_lcl.extent(0))), KOKKOS_LAMBDA ( const int& ii ) {
+            Kokkos::parallel_for(Kokkos::RangePolicy<execution_space>(0, static_cast<int>(Y_lcl.extent(0))), KOKKOS_LAMBDA (const int& ii) {
                 Y_lcl(ii, 0) = ReorderedY_lcl(perm_rcb(ii), 0);
             });
           }
