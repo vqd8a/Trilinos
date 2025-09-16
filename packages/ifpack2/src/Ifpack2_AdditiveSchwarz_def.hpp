@@ -988,6 +988,27 @@ void AdditiveSchwarz<MatrixType, LocalInverseType>::initialize() {
     setup();  // This does a lot of the initialization work.
 
     if (!Inverse_.is_null()) {
+      const std::string innerName = innerPrecName();
+      if ((innerName.compare("RILUK") == 0) && (Coordinates_ != Teuchos::null)) {
+        auto ifpack2_Inverse = Teuchos::rcp_dynamic_cast< Ifpack2::Details::LinearSolver<scalar_type,local_ordinal_type,global_ordinal_type,node_type> > (Inverse_);
+        if (UseReordering_) {
+          RCP<coord_type> reordered_Coordinates_ = rcp(new coord_type(*Coordinates_, Teuchos::Copy));
+          {
+            auto coorDevice = reordered_Coordinates_->getLocalViewDevice(Tpetra::Access::ReadWrite);
+            auto permDevice = perm_coors.view_device();
+            Kokkos::View<magnitude_type**, Kokkos::LayoutLeft> tmp_coor(Kokkos::view_alloc(Kokkos::WithoutInitializing, "tmp_coor"), coorDevice.extent(0), coorDevice.extent(1));
+            Kokkos::parallel_for(Kokkos::RangePolicy<typename crs_matrix_type::execution_space>(0, static_cast<int>(coorDevice.extent(0))), KOKKOS_LAMBDA (const int& i) {
+              for(int j = 0; j < static_cast<int>(coorDevice.extent(1)); j++) {
+                tmp_coor(permDevice(i), j) = coorDevice(i, j);
+              }
+            });
+            Kokkos::deep_copy(coorDevice, tmp_coor);
+          }
+          ifpack2_Inverse->setCoord(reordered_Coordinates_);
+        } else {
+          ifpack2_Inverse->setCoord(Coordinates_);
+        }
+      }
       Inverse_->symbolic();  // Initialize subdomain solver.
     }
 
@@ -1376,6 +1397,7 @@ void AdditiveSchwarz<MatrixType, LocalInverseType>::setup() {
         revperm[i] = i;
       }
     }
+
     // Now, construct the filter
     {
       Teuchos::TimeMonitor t(*Teuchos::TimeMonitor::getNewTimer("Filter construction"));
@@ -1385,6 +1407,16 @@ void AdditiveSchwarz<MatrixType, LocalInverseType>::setup() {
       else
         asf = rcp(new Details::AdditiveSchwarzFilter<MatrixType>(OverlappingMatrix_, perm, revperm, FilterSingletons_));
       innerMatrix_ = asf;
+    }
+
+    if (UseReordering_ && (Coordinates_ != Teuchos::null)) {
+      perm_coors = perm_dualview_type(Kokkos::view_alloc(Kokkos::WithoutInitializing, "perm_coors"), perm.size());
+      perm_coors.modify_host();
+      auto permHost = perm_coors.view_host();
+      for(local_ordinal_type i = 0; i < static_cast<local_ordinal_type>(perm.size()); i++) {
+        permHost(i) = perm[i];
+      }
+      perm_coors.sync_device();
     }
   } else {
     // Localized version of Matrix_ or OverlappingMatrix_.
@@ -1531,15 +1563,6 @@ void AdditiveSchwarz<MatrixType, LocalInverseType>::setup() {
             << innerName << "\".");
     innerPrec->setMatrix(innerMatrix_);
 
-    if ((innerName.compare("RILUK") == 0) && (Coordinates_ == Teuchos::null)) {
-      printf("After construct the AdditiveSchwarzFilter: Inverse_ is null, Coordinates_ is null, innerName %s, innerPrec type %s\n", innerName.c_str(), typeid(decltype(innerPrec)).name());
-    }
-    if ((innerName.compare("RILUK") == 0) && (Coordinates_ != Teuchos::null)) {
-      fprintf(stderr,"After construct the AdditiveSchwarzFilter: Inverse_ is null, Coordinates_ is NOT null, innerName %s, innerPrec type %s\n", innerName.c_str(), typeid(decltype(innerPrec)).name());
-      auto ifpack2_innerPrec = Teuchos::rcp_dynamic_cast< Ifpack2::Details::LinearSolver<scalar_type,local_ordinal_type,global_ordinal_type,node_type> > (innerPrec);
-      ifpack2_innerPrec->setCoord(Coordinates_);
-    }
-
     // Extract and apply the sublist of parameters to give to the
     // inner solver, if there is such a sublist of parameters.
     std::pair<Teuchos::ParameterList, bool> result = innerPrecParams();
@@ -1554,12 +1577,6 @@ void AdditiveSchwarz<MatrixType, LocalInverseType>::setup() {
     // preconditioner's current matrix, so give the inner
     // preconditioner the new inner matrix.
     Inverse_->setMatrix(innerMatrix_);
-
-    const std::string innerName = innerPrecName();
-    if ((innerName.compare("RILUK") == 0) && (Coordinates_ != Teuchos::null)) {
-      auto ifpack2_Inverse = Teuchos::rcp_dynamic_cast< Ifpack2::Details::LinearSolver<scalar_type,local_ordinal_type,global_ordinal_type,node_type> > (Inverse_);
-      ifpack2_Inverse->setCoord(Coordinates_);
-    }
   }
   TEUCHOS_TEST_FOR_EXCEPTION(
       Inverse_.is_null(), std::logic_error,

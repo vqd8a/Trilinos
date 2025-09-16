@@ -720,6 +720,9 @@ class AdditiveSchwarz : virtual public Preconditioner<typename MatrixType::scala
   //! Type of the inner (subdomain) solver.
   typedef Trilinos::Details::LinearSolver<MV, OP, typename MV::mag_type> inner_solver_type;
 
+  //! The type of permutation view used with coordinates
+  typedef Kokkos::DualView<local_ordinal_type*, typename crs_matrix_type::device_type> perm_dualview_type;
+
   //! Copy constructor (unimplemented; do not use)
   AdditiveSchwarz(const AdditiveSchwarz& RHS);
 
@@ -859,6 +862,8 @@ class AdditiveSchwarz : virtual public Preconditioner<typename MatrixType::scala
   mutable std::unique_ptr<MV> R_;
   //! Cached intermediate result (multi)vector.
   mutable std::unique_ptr<MV> C_;
+  //! The permutation view used for coordinates.
+  perm_dualview_type perm_coors;
 
   /// \brief Import object used in apply().
   ///

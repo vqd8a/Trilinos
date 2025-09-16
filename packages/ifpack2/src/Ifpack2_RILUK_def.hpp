@@ -390,10 +390,8 @@ void RILUK<MatrixType>::
     if (params.isParameter("fact: kspiluk reordering in streams"))
       hasStreamReordered_ = params.get<bool>("fact: kspiluk reordering in streams");
 
-    bool use_rcb = false;
     if (params.isParameter("fact: kspiluk streams use rcb"))
-      use_rcb = params.get<bool>("fact: kspiluk streams use rcb");
-    hasStreamsWithRCB_ = use_rcb && (A_coordinates_ != Teuchos::null);
+      hasStreamsWithRCB_ = params.get<bool>("fact: kspiluk streams use rcb");
   } else {
     this->isKokkosKernelsStream_ = false;
   }
