@@ -609,7 +609,11 @@ void RILUK<MatrixType>::initialize() {
         }
       }
     }
-
+    {
+      int myRank;
+      MPI_Comm_rank (MPI_COMM_WORLD, &myRank);
+      printf("RANK %d, RILUK::initialize(), A_local_crs_ local nrows %d\n", myRank, A_local_crs_->getLocalNumRows());
+    }
     if (this->isKokkosKernelsSpiluk_) {
       if (!isKokkosKernelsStream_) {
         this->KernelHandle_ = Teuchos::rcp(new kk_handle_type());

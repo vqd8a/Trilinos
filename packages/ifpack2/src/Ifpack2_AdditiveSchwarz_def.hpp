@@ -983,6 +983,9 @@ void AdditiveSchwarz<MatrixType, LocalInverseType>::initialize() {
     if (IsOverlapping_) {
       Teuchos::TimeMonitor t(*Teuchos::TimeMonitor::getNewTimer("OverlappingRowMatrix construction"));
       OverlappingMatrix_ = rcp(new OverlappingRowMatrix<row_matrix_type>(Matrix_, OverlapLevel_));
+	  int myRank;
+      MPI_Comm_rank (MPI_COMM_WORLD, &myRank);
+      printf("RANK %d, OverlappingMatrix_.is_null %d, Matrix_ local nrows %d, OverlappingMatrix_ local nrows %d\n", myRank, OverlappingMatrix_.is_null(), Matrix_->getLocalNumRows(), OverlappingMatrix_->getLocalNumRows());
     }
 
     setup();  // This does a lot of the initialization work.
@@ -990,11 +993,27 @@ void AdditiveSchwarz<MatrixType, LocalInverseType>::initialize() {
     if (!Inverse_.is_null()) {
       const std::string innerName = innerPrecName();
       if ((innerName.compare("RILUK") == 0) && (Coordinates_ != Teuchos::null)) {
+        int myRank;
+        MPI_Comm_rank (MPI_COMM_WORLD, &myRank);
         auto ifpack2_Inverse = Teuchos::rcp_dynamic_cast< Ifpack2::Details::LinearSolver<scalar_type,local_ordinal_type,global_ordinal_type,node_type> > (Inverse_);
-        if (UseReordering_) {
-          RCP<coord_type> reordered_Coordinates_ = rcp(new coord_type(*Coordinates_, Teuchos::Copy));
-          {
-            auto coorDevice = reordered_Coordinates_->getLocalViewDevice(Tpetra::Access::ReadWrite);
+        if (!IsOverlapping_ && !UseReordering_) {
+          ifpack2_Inverse->setCoord(Coordinates_);
+          printf("RANK %d, non-overlaping, not use reordering, local number of coordinates %d\n", myRank, Coordinates_->getLocalLength());
+        } else {
+          std::string str = "RANK " + std::to_string(myRank) + ", ";
+          RCP<coord_type> tmp_Coordinates_;
+          if (IsOverlapping_) {
+            str = str + "overlaping, ";
+            tmp_Coordinates_ = rcp(new coord_type(OverlappingMatrix_->getRowMap(), Coordinates_->getNumVectors(), false));
+            Tpetra::Import<local_ordinal_type, global_ordinal_type, node_type> importer(Coordinates_->getMap(), tmp_Coordinates_->getMap());
+            tmp_Coordinates_->doImport(*Coordinates_, importer, Tpetra::INSERT);
+          } else {
+            str = str + "non-overlaping, ";
+            tmp_Coordinates_ = rcp(new coord_type(*Coordinates_, Teuchos::Copy));
+          }
+          if (UseReordering_) {
+            str = str + "use reordering, ";
+            auto coorDevice = tmp_Coordinates_->getLocalViewDevice(Tpetra::Access::ReadWrite);
             auto permDevice = perm_coors.view_device();
             Kokkos::View<magnitude_type**, Kokkos::LayoutLeft> tmp_coor(Kokkos::view_alloc(Kokkos::WithoutInitializing, "tmp_coor"), coorDevice.extent(0), coorDevice.extent(1));
             Kokkos::parallel_for(Kokkos::RangePolicy<typename crs_matrix_type::execution_space>(0, static_cast<int>(coorDevice.extent(0))), KOKKOS_LAMBDA (const int& i) {
@@ -1004,9 +1023,10 @@ void AdditiveSchwarz<MatrixType, LocalInverseType>::initialize() {
             });
             Kokkos::deep_copy(coorDevice, tmp_coor);
           }
-          ifpack2_Inverse->setCoord(reordered_Coordinates_);
-        } else {
-          ifpack2_Inverse->setCoord(Coordinates_);
+          else str = str + "NOT use reordering, "; // will remove this line eventually
+          str = str + "local number of coordinates " + std::to_string(tmp_Coordinates_->getLocalLength()) + '\n';
+          printf(str.c_str());
+          ifpack2_Inverse->setCoord(tmp_Coordinates_);
         }
       }
       Inverse_->symbolic();  // Initialize subdomain solver.
