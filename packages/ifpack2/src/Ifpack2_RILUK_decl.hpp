@@ -272,7 +272,8 @@ class RILUK : virtual public Ifpack2::Preconditioner<typename MatrixType::scalar
 
   //! Tpetra::MultiVector specialization used for containing coordinates
   typedef Tpetra::MultiVector<magnitude_type, local_ordinal_type,
-                              global_ordinal_type, node_type> coord_type;
+                              global_ordinal_type, node_type>
+      coord_type;
 
   //@}
   //! \name Implementation of Kokkos Kernels ILU(k).

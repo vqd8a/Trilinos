@@ -562,8 +562,8 @@ void RILUK<MatrixType>::initialize() {
           if (hasStreamsWithRCB_) {
             TEUCHOS_TEST_FOR_EXCEPTION(A_coordinates_.is_null(), std::runtime_error, prefix << "The coordinates associated with rows of the input matrix is null while RILUK uses streams with RCB.  Please call setCoord() with a nonnull input before calling this method.");
             auto A_coordinates_lcl = A_coordinates_->getLocalViewDevice(Tpetra::Access::ReadOnly);
-            perm_rcb = perm_view_t(Kokkos::view_alloc(Kokkos::WithoutInitializing, "perm_rcb"), A_coordinates_lcl.extent(0));
-            coors_rcb = coors_view_t(Kokkos::view_alloc(Kokkos::WithoutInitializing, "coors_rcb"), A_coordinates_lcl.extent(0), A_coordinates_lcl.extent(1));
+            perm_rcb               = perm_view_t(Kokkos::view_alloc(Kokkos::WithoutInitializing, "perm_rcb"), A_coordinates_lcl.extent(0));
+            coors_rcb              = coors_view_t(Kokkos::view_alloc(Kokkos::WithoutInitializing, "coors_rcb"), A_coordinates_lcl.extent(0), A_coordinates_lcl.extent(1));
             Kokkos::deep_copy(coors_rcb, A_coordinates_lcl);
             KokkosSparse::Impl::kk_extract_diagonal_blocks_crsmatrix_with_rcb_sequential(lclMtx, coors_rcb,
                                                                                          A_local_diagblks_v_, perm_rcb);
@@ -1221,7 +1221,7 @@ void RILUK<MatrixType>::
         Impl::resetMultiVecIfNeeded(reordered_x_, X.getMap(), X.getNumVectors(), false);
         Impl::resetMultiVecIfNeeded(reordered_y_, Y.getMap(), Y.getNumVectors(), false);
         Kokkos::fence();
-        
+
         for (size_t j = 0; j < X.getNumVectors(); j++) {
           auto X_j            = X.getVector(j);
           auto ReorderedX_j   = reordered_x_->getVectorNonConst(j);
@@ -1241,11 +1241,12 @@ void RILUK<MatrixType>::
                   });
               stream_begin = stream_end;
             }
-          } else { // hasStreamsWithRCB_
+          } else {  // hasStreamsWithRCB_
             auto perm = perm_rcb;
-            Kokkos::parallel_for(Kokkos::RangePolicy<execution_space>(0, static_cast<int>(X_lcl.extent(0))), KOKKOS_LAMBDA(const int& ii) {
-              ReorderedX_lcl(perm(ii), 0) = X_lcl(ii, 0);
-            });
+            Kokkos::parallel_for(
+                Kokkos::RangePolicy<execution_space>(0, static_cast<int>(X_lcl.extent(0))), KOKKOS_LAMBDA(const int& ii) {
+                  ReorderedX_lcl(perm(ii), 0) = X_lcl(ii, 0);
+                });
           }
         }
         Kokkos::fence();
@@ -1281,11 +1282,12 @@ void RILUK<MatrixType>::
                   });
               stream_begin = stream_end;
             }
-          } else { // hasStreamsWithRCB_
+          } else {  // hasStreamsWithRCB_
             auto perm = perm_rcb;
-            Kokkos::parallel_for(Kokkos::RangePolicy<execution_space>(0, static_cast<int>(Y_lcl.extent(0))), KOKKOS_LAMBDA(const int& ii) {
-                Y_lcl(ii, 0) = ReorderedY_lcl(perm(ii), 0);
-            });
+            Kokkos::parallel_for(
+                Kokkos::RangePolicy<execution_space>(0, static_cast<int>(Y_lcl.extent(0))), KOKKOS_LAMBDA(const int& ii) {
+                  Y_lcl(ii, 0) = ReorderedY_lcl(perm(ii), 0);
+                });
           }
         }
         Kokkos::fence();
