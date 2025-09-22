@@ -990,7 +990,7 @@ void AdditiveSchwarz<MatrixType, LocalInverseType>::initialize() {
     if (!Inverse_.is_null()) {
       const std::string innerName = innerPrecName();
       if ((innerName.compare("RILUK") == 0) && (Coordinates_ != Teuchos::null)) {
-        auto ifpack2_Inverse = Teuchos::rcp_dynamic_cast<Ifpack2::Details::LinearSolver<scalar_type, local_ordinal_type, global_ordinal_type,node_type>>(Inverse_);
+        auto ifpack2_Inverse = Teuchos::rcp_dynamic_cast<Ifpack2::Details::LinearSolver<scalar_type, local_ordinal_type, global_ordinal_type, node_type>>(Inverse_);
         if (!IsOverlapping_ && !UseReordering_) {
           ifpack2_Inverse->setCoord(Coordinates_);
         } else {
