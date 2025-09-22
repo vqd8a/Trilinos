@@ -43,8 +43,9 @@ struct IlukImplType {
 }  // namespace Details
 
 template <class MatrixType>
-RILUK<MatrixType>::RILUK(const Teuchos::RCP<const row_matrix_type>& Matrix_in)
+RILUK<MatrixType>::RILUK(const Teuchos::RCP<const row_matrix_type>& Matrix_in, const Teuchos::RCP<const coord_type>& Matrix_in_coordinates)
   : A_(Matrix_in)
+  , A_coordinates_(Matrix_in_coordinates)
   , LevelOfFill_(0)
   , Overalloc_(2.)
   , isAllocated_(false)
@@ -68,8 +69,9 @@ RILUK<MatrixType>::RILUK(const Teuchos::RCP<const row_matrix_type>& Matrix_in)
 }
 
 template <class MatrixType>
-RILUK<MatrixType>::RILUK(const Teuchos::RCP<const crs_matrix_type>& Matrix_in)
+RILUK<MatrixType>::RILUK(const Teuchos::RCP<const crs_matrix_type>& Matrix_in, const Teuchos::RCP<const coord_type>& Matrix_in_coordinates)
   : A_(Matrix_in)
+  , A_coordinates_(Matrix_in_coordinates)
   , LevelOfFill_(0)
   , Overalloc_(2.)
   , isAllocated_(false)
@@ -148,9 +150,9 @@ void RILUK<MatrixType>::setMatrix(const Teuchos::RCP<const row_matrix_type>& A) 
 }
 
 template <class MatrixType>
-void RILUK<MatrixType>::setCoord(const Teuchos::RCP<const coord_type>& C) {
-  if (C.getRawPtr () != A_coordinates_.getRawPtr ()) {
-    A_coordinates_ = C;
+void RILUK<MatrixType>::setCoord(const Teuchos::RCP<const coord_type>& A_coordinates) {
+  if (A_coordinates.getRawPtr() != A_coordinates_.getRawPtr()) {
+    A_coordinates_ = A_coordinates;
   }
 }
 
@@ -558,6 +560,7 @@ void RILUK<MatrixType>::initialize() {
         auto lclMtx = A_local_crs_->getLocalMatrixDevice();
         if (!hasStreamReordered_) {
           if (hasStreamsWithRCB_) {
+            TEUCHOS_TEST_FOR_EXCEPTION(A_coordinates_.is_null(), std::runtime_error, prefix << "The coordinates associated with rows of the input matrix is null while RILUK uses streams with RCB.  Please call setCoord() with a nonnull input before calling this method.");
             auto A_coordinates_lcl = A_coordinates_->getLocalViewDevice(Tpetra::Access::ReadOnly);
             perm_rcb = perm_view_t(Kokkos::view_alloc(Kokkos::WithoutInitializing, "perm_rcb"), A_coordinates_lcl.extent(0));
             coors_rcb = coors_view_t(Kokkos::view_alloc(Kokkos::WithoutInitializing, "coors_rcb"), A_coordinates_lcl.extent(0), A_coordinates_lcl.extent(1));
@@ -609,11 +612,7 @@ void RILUK<MatrixType>::initialize() {
         }
       }
     }
-    {
-      int myRank;
-      MPI_Comm_rank (MPI_COMM_WORLD, &myRank);
-      printf("RANK %d, RILUK::initialize(), A_local_crs_ local nrows %d\n", myRank, A_local_crs_->getLocalNumRows());
-    }
+
     if (this->isKokkosKernelsSpiluk_) {
       if (!isKokkosKernelsStream_) {
         this->KernelHandle_ = Teuchos::rcp(new kk_handle_type());
@@ -1243,8 +1242,9 @@ void RILUK<MatrixType>::
               stream_begin = stream_end;
             }
           } else { // hasStreamsWithRCB_
-            Kokkos::parallel_for(Kokkos::RangePolicy<execution_space>(0, static_cast<int>(X_lcl.extent(0))), KOKKOS_LAMBDA (const int& ii) {
-              ReorderedX_lcl(perm_rcb(ii), 0) = X_lcl(ii, 0);
+            auto perm = perm_rcb;
+            Kokkos::parallel_for(Kokkos::RangePolicy<execution_space>(0, static_cast<int>(X_lcl.extent(0))), KOKKOS_LAMBDA(const int& ii) {
+              ReorderedX_lcl(perm(ii), 0) = X_lcl(ii, 0);
             });
           }
         }
@@ -1282,8 +1282,9 @@ void RILUK<MatrixType>::
               stream_begin = stream_end;
             }
           } else { // hasStreamsWithRCB_
-            Kokkos::parallel_for(Kokkos::RangePolicy<execution_space>(0, static_cast<int>(Y_lcl.extent(0))), KOKKOS_LAMBDA (const int& ii) {
-                Y_lcl(ii, 0) = ReorderedY_lcl(perm_rcb(ii), 0);
+            auto perm = perm_rcb;
+            Kokkos::parallel_for(Kokkos::RangePolicy<execution_space>(0, static_cast<int>(Y_lcl.extent(0))), KOKKOS_LAMBDA(const int& ii) {
+                Y_lcl(ii, 0) = ReorderedY_lcl(perm(ii), 0);
             });
           }
         }

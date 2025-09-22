@@ -289,13 +289,13 @@ class RILUK : virtual public Ifpack2::Preconditioner<typename MatrixType::scalar
                                                                     HandleExecSpace, TemporaryMemorySpace, PersistentMemorySpace>
       kk_handle_type;
   typedef Ifpack2::IlukGraph<Tpetra::CrsGraph<local_ordinal_type, global_ordinal_type, node_type>, kk_handle_type> iluk_graph_type;
-  typedef Kokkos::View<magnitude_type**, Kokkos::LayoutLeft> coors_view_t;
-  typedef Kokkos::View<local_ordinal_type*, Kokkos::LayoutLeft> perm_view_t;
+  typedef Kokkos::View<magnitude_type**, Kokkos::LayoutLeft, device_type> coors_view_t;
+  typedef Kokkos::View<local_ordinal_type*, Kokkos::LayoutLeft, device_type> perm_view_t;
 
   /// \brief Constructor that takes a Tpetra::RowMatrix.
   ///
   /// \param A_in [in] The input matrix.
-  RILUK(const Teuchos::RCP<const row_matrix_type>& A_in);
+  RILUK(const Teuchos::RCP<const row_matrix_type>& A_in, const Teuchos::RCP<const coord_type>& A_in_coordinates = Teuchos::null);
 
   /// \brief Constructor that takes a Tpetra::CrsMatrix.
   ///
@@ -304,7 +304,7 @@ class RILUK : virtual public Ifpack2::Preconditioner<typename MatrixType::scalar
   /// a Tpetra::RowMatrix.
   ///
   /// \param A_in [in] The input matrix.
-  RILUK(const Teuchos::RCP<const crs_matrix_type>& A_in);
+  RILUK(const Teuchos::RCP<const crs_matrix_type>& A_in, const Teuchos::RCP<const coord_type>& A_in_coordinates = Teuchos::null);
 
  private:
   /// \brief Copy constructor: declared private but not defined, so
@@ -406,9 +406,9 @@ class RILUK : virtual public Ifpack2::Preconditioner<typename MatrixType::scalar
 
   /// \brief Set the matrix rows' coordinates.
   ///
-  /// \param C [in] Pointer to the coordinates multivector.
+  /// \param A_coordinates [in] Pointer to the coordinates multivector.
   void
-  setCoord(const Teuchos::RCP<const coord_type>& C);
+  setCoord(const Teuchos::RCP<const coord_type>& A_coordinates);
 
   //@}
   //! @name Implementation of Teuchos::Describable interface
