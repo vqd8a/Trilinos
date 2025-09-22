@@ -990,7 +990,7 @@ void AdditiveSchwarz<MatrixType, LocalInverseType>::initialize() {
     if (!Inverse_.is_null()) {
       const std::string innerName = innerPrecName();
       if ((innerName.compare("RILUK") == 0) && (Coordinates_ != Teuchos::null)) {
-        auto ifpack2_Inverse = Teuchos::rcp_dynamic_cast<Ifpack2::Details::LinearSolver<scalar_type,local_ordinal_type,global_ordinal_type,node_type>>(Inverse_);
+        auto ifpack2_Inverse = Teuchos::rcp_dynamic_cast<Ifpack2::Details::LinearSolver<scalar_type, local_ordinal_type, global_ordinal_type,node_type>>(Inverse_);
         if (!IsOverlapping_ && !UseReordering_) {
           ifpack2_Inverse->setCoord(Coordinates_);
         } else {
@@ -1007,7 +1007,7 @@ void AdditiveSchwarz<MatrixType, LocalInverseType>::initialize() {
             auto permDevice = perm_coors.view_device();
             Kokkos::View<magnitude_type**, Kokkos::LayoutLeft> tmp_coor(Kokkos::view_alloc(Kokkos::WithoutInitializing, "tmp_coor"), coorDevice.extent(0), coorDevice.extent(1));
             Kokkos::parallel_for(
-                Kokkos::RangePolicy<typename crs_matrix_type::execution_space>(0, static_cast<int>(coorDevice.extent(0))), KOKKOS_LAMBDA (const int& i) {
+                Kokkos::RangePolicy<typename crs_matrix_type::execution_space>(0, static_cast<int>(coorDevice.extent(0))), KOKKOS_LAMBDA(const int& i) {
                   for (int j = 0; j < static_cast<int>(coorDevice.extent(1)); j++) {
                     tmp_coor(permDevice(i), j) = coorDevice(i, j);
                   }
