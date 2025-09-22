@@ -54,7 +54,7 @@ class Factory {
   Teuchos::RCP<prec_type>
   create(const std::string& precType,
          const Teuchos::RCP<const row_matrix_type>& matrix,
-         const Teuchos::RCP<const coord_type >& coordinates);
+         const Teuchos::RCP<const coord_type>& coordinates);
 
   /** \brief Create an instance of Ifpack2::Preconditioner given the
    *   string name of the preconditioner type.

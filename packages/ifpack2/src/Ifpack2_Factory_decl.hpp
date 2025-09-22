@@ -153,7 +153,7 @@ class Factory {
       A = rcp_implicit_cast<const row_matrix_type>(matrix);
     }
     Ifpack2::Details::Factory<SC, LO, GO, NT> factory;
-    return factory.create (precType, A, coordinates);
+    return factory.create(precType, A, coordinates);
   }
 
   /** \brief Create an instance of Ifpack2_Preconditioner given the string

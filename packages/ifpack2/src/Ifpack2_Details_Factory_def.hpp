@@ -191,8 +191,7 @@ Factory<SC, LO, GO, NT>::
     // called setInnerPreconditioner() with a null argument if that's
     // not what you meant!
     prec = rcp(new AdditiveSchwarz<row_matrix_type>(matrix, coordinates));
-  }
-  else {
+  } else {
     bool success = false;
     std::ostringstream err;
     try {
