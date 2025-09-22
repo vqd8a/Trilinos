@@ -26,9 +26,9 @@ build_precond(Teuchos::ParameterList& test_params,
   using Teuchos::RCP;
   using Teuchos::rcpFromRef;
   typedef Tpetra::RowMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node> row_matrix_type;
-  typedef Tpetra::Map<LocalOrdinal,GlobalOrdinal,Node> map_type;
+  typedef Tpetra::Map<LocalOrdinal, GlobalOrdinal, Node> map_type;
   typedef typename Teuchos::ScalarTraits<Scalar>::magnitudeType magnitude_type;
-  typedef Tpetra::MultiVector<magnitude_type,LocalOrdinal,GlobalOrdinal,Node> coord_type;
+  typedef Tpetra::MultiVector<magnitude_type, LocalOrdinal, GlobalOrdinal, Node> coord_type;
   typedef Tpetra::MatrixMarket::Reader<MatrixType> reader_type;
   Teuchos::Time timer_init("Init preconditioner");
   Teuchos::Time timer("Compute preconditioner");
@@ -52,11 +52,10 @@ build_precond(Teuchos::ParameterList& test_params,
       std::cout << "Matrix Market file for coordinates C: " << coord_mm_file << std::endl;
     }
     RCP<coord_type> coordinates = Teuchos::null;
-    RCP<const map_type> rowMap = A->getRowMap();
-    coordinates = reader_type::readDenseFile(coord_mm_file, comm, rowMap);
-    prec = factory.create<row_matrix_type>(prec_name, A, coordinates);
-  }
-  else {
+    RCP<const map_type> rowMap  = A->getRowMap();
+    coordinates                 = reader_type::readDenseFile(coord_mm_file, comm, rowMap);
+    prec                        = factory.create<row_matrix_type>(prec_name, A, coordinates);
+  } else {
     prec = factory.create<row_matrix_type>(prec_name, A);
   }
 
