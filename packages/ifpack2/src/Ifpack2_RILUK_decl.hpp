@@ -498,6 +498,9 @@ class RILUK : virtual public Ifpack2::Preconditioner<typename MatrixType::scalar
   //! Get the input matrix.
   Teuchos::RCP<const row_matrix_type> getMatrix() const;
 
+  //! Get the coordinates associated with the input matrix's rows.
+  Teuchos::RCP<const coord_type> getCoord() const;
+
   // Attribute access functions
 
   //! Get RILU(k) relaxation parameter

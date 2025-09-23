@@ -427,6 +427,12 @@ RILUK<MatrixType>::getCrsMatrix() const {
 }
 
 template <class MatrixType>
+Teuchos::RCP<const typename RILUK<MatrixType>::coord_type>
+RILUK<MatrixType>::getCoord() const {
+  return A_coordinates_;
+}
+
+template <class MatrixType>
 Teuchos::RCP<const typename RILUK<MatrixType>::row_matrix_type>
 RILUK<MatrixType>::makeLocalFilter(const Teuchos::RCP<const row_matrix_type>& A) {
   using Teuchos::RCP;
