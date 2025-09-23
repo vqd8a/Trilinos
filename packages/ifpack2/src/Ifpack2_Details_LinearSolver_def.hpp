@@ -100,7 +100,7 @@ void LinearSolver<SC, LO, GO, NT>::
                                                                                 "Please report this bug to the Ifpack2 developers.");
   innerSolver->setCoord(C);
 
-  C_ = C;  // keep a pointer to C, so that getCoord() works
+  C_ = C;
 }
 
 template <class SC, class LO, class GO, class NT>
@@ -108,6 +108,13 @@ Teuchos::RCP<const typename LinearSolver<SC, LO, GO, NT>::OP>
 LinearSolver<SC, LO, GO, NT>::
     getMatrix() const {
   return A_;  // may be null
+}
+
+template <class SC, class LO, class GO, class NT>
+Teuchos::RCP<const typename LinearSolver<SC, LO, GO, NT>::coord_type>
+LinearSolver<SC, LO, GO, NT>::
+    getCoord() const {
+  return C_;
 }
 
 template <class SC, class LO, class GO, class NT>

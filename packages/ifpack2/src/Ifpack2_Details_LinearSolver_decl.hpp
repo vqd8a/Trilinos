@@ -110,6 +110,9 @@ class LinearSolver : public Trilinos::Details::LinearSolver<Tpetra::MultiVector<
   //! Get the solver's matrix.
   Teuchos::RCP<const OP> getMatrix() const;
 
+  //! Get the coordinates associated with the solver's matrix rows.
+  Teuchos::RCP<const coord_type> getCoord() const;
+
   //! Solve the linear system AX=B for X.
   void solve(MV& X, const MV& B);
 
