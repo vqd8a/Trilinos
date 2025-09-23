@@ -192,18 +192,11 @@ Factory<SC, LO, GO, NT>::
     // not what you meant!
     prec = rcp(new AdditiveSchwarz<row_matrix_type>(matrix, coordinates));
   } else {
-    bool success = false;
-    std::ostringstream err;
-    try {
-      Details::OneLevelFactory<row_matrix_type> factory;
-      prec    = factory.create(precType, matrix);
-      success = true;
-    } catch (std::invalid_argument& e) {
-      err << "Ifpack2::Factory::create: Invalid preconditioner type \""
-          << precType << "\".  More information for Ifpack2 developers: "
-          << e.what();
-    }
-    TEUCHOS_TEST_FOR_EXCEPTION(!success, std::invalid_argument, err.str());
+    TEUCHOS_TEST_FOR_EXCEPTION(true, std::invalid_argument,
+                               "Using stream-based RILUK with RCB partitioning on "
+                               "coordinates associated with matrix rows is currently "
+                               "enabled only with Additive Schwarz preconditioner "
+                               "and RILUK as a subdomain solver.");
   }
 
   TEUCHOS_TEST_FOR_EXCEPTION(
