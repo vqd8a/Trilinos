@@ -433,6 +433,15 @@ class AdditiveSchwarz : virtual public Preconditioner<typename MatrixType::scala
   //! The input matrix.
   virtual Teuchos::RCP<const row_matrix_type> getMatrix() const;
 
+  /// \brief Set the matrix rows' coordinates.
+  ///
+  /// \param Coordinates [in] Pointer to the coordinates multivector.
+  void
+  setCoord(const Teuchos::RCP<const coord_type>& Coordinates);
+
+  //! Get the coordinates associated with the input matrix's rows.
+  Teuchos::RCP<const coord_type> getCoord() const;
+
   /// \brief Set the preconditioner's parameters.
   ///
   /// \param plist [in] List of parameters.

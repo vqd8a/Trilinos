@@ -238,6 +238,11 @@ Teuchos::RCP<const Tpetra::RowMatrix<typename MatrixType::scalar_type, typename 
   return Matrix_;
 }
 
+template <class MatrixType, class LocalInverseType>
+Teuchos::RCP<const Tpetra::MultiVector<typename Teuchos::ScalarTraits<typename MatrixType::scalar_type>::magnitudeType, typename MatrixType::local_ordinal_type, typename MatrixType::global_ordinal_type, typename MatrixType::node_type>> AdditiveSchwarz<MatrixType, LocalInverseType>::getCoord() const {
+  return Coordinates_;
+}
+
 namespace {
 
 template <class MatrixType, class map_type>
@@ -1692,6 +1697,15 @@ void AdditiveSchwarz<MatrixType, LocalInverseType>::
     DistributedImporter_ = Teuchos::null;
 
     Matrix_ = A;
+  }
+}
+
+template <class MatrixType, class LocalInverseType>
+void AdditiveSchwarz<MatrixType, LocalInverseType>::
+    setCoord(const Teuchos::RCP<const coord_type>& Coordinates) {
+  // Don't set unless it is different from the current one.
+  if (Coordinates.getRawPtr() != Coordinates_.getRawPtr()) {
+    Coordinates_ = Coordinates;
   }
 }
 
