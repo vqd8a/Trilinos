@@ -541,11 +541,21 @@ void IlukGraph<GraphType, KKHandleType>::initialize(const Teuchos::RCP<KKHandleT
   const int NumMyRows    = OverlapGraph_->getRowMap()->getLocalNumElements();
   auto localOverlapGraph = OverlapGraph_->getLocalGraphDevice();
 
+  // VINH TEST
+  int myRank;
+  MPI_Comm_rank (MPI_COMM_WORLD, &myRank);
+  // END VINH TEST
+
   if (KernelHandle->get_spiluk_handle()->get_nrows() < static_cast<size_type>(NumMyRows)) {
     KernelHandle->get_spiluk_handle()->reset_handle(NumMyRows,
                                                     KernelHandle->get_spiluk_handle()->get_nnzL(),
                                                     KernelHandle->get_spiluk_handle()->get_nnzU());
   }
+
+  // VINH TEST
+  fprintf(stderr, "IlukGraph<GraphType, KKHandleType>::initialize () BeFore symbolic, rank %d, NumMyRows %d, num L entries %d, num U entries %d, Overalloc_ %lf\n",
+          myRank, NumMyRows, KernelHandle->get_spiluk_handle()->get_nnzL(), KernelHandle->get_spiluk_handle()->get_nnzU(), Overalloc_);
+  // END VINH TEST
 
   lno_row_view_t L_row_map("L_row_map", NumMyRows + 1);
   lno_nonzero_view_t L_entries("L_entries", KernelHandle->get_spiluk_handle()->get_nnzL());
@@ -564,6 +574,10 @@ void IlukGraph<GraphType, KKHandleType>::initialize(const Teuchos::RCP<KKHandleT
       data_type nnzL = static_cast<data_type>(Overalloc_) * L_entries.extent(0);
       data_type nnzU = static_cast<data_type>(Overalloc_) * U_entries.extent(0);
       KernelHandle->get_spiluk_handle()->reset_handle(NumMyRows, nnzL, nnzU);
+      // VINH TEST
+      fprintf(stderr, "IlukGraph<GraphType, KKHandleType>::initialize () symbolic caught error, rank %d, NumMyRows %d, num L entries %d, num U entries %d, Overalloc_ %lf\n",
+              myRank, NumMyRows, KernelHandle->get_spiluk_handle()->get_nnzL(), KernelHandle->get_spiluk_handle()->get_nnzU(), Overalloc_);
+      // END VINH TEST
       Kokkos::resize(L_entries, KernelHandle->get_spiluk_handle()->get_nnzL());
       Kokkos::resize(U_entries, KernelHandle->get_spiluk_handle()->get_nnzU());
     }
@@ -573,6 +587,11 @@ void IlukGraph<GraphType, KKHandleType>::initialize(const Teuchos::RCP<KKHandleT
               &localSymbolicError, &globalSymbolicError);
     symbolicError = globalSymbolicError > 0;
   } while (symbolicError);
+
+  // VINH TEST
+  fprintf(stderr, "IlukGraph<GraphType, KKHandleType>::initialize () AfTer symbolic, rank %d, NumMyRows %d, num L entries %d, num U entries %d\n",
+          myRank, NumMyRows, KernelHandle->get_spiluk_handle()->get_nnzL(), KernelHandle->get_spiluk_handle()->get_nnzU());
+  // END VINH TEST
 
   Kokkos::resize(L_entries, KernelHandle->get_spiluk_handle()->get_nnzL());
   Kokkos::resize(U_entries, KernelHandle->get_spiluk_handle()->get_nnzU());
