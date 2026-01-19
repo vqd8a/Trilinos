@@ -567,6 +567,11 @@ void RILUK<MatrixType>::initialize() {
         A_local_crs_ = rcp_const_cast<const crs_matrix_type>(A_local_crs_nc_);
       }
       if (!isKokkosKernelsStream_) {
+        {// VINH TEST
+          auto lclMtx = A_local_crs_->getLocalMatrixDevice();      
+          std::string fnA_mtx = "A_r_" + std::to_string( myRank ) + ".mtx";
+          KokkosSparse::Impl::write_kokkos_crst_matrix<local_matrix_device_type>(lclMtx, fnA_mtx.c_str());
+        }// VINH TEST
         Graph_ = rcp(new Ifpack2::IlukGraph<crs_graph_type, kk_handle_type>(A_local_crs_->getCrsGraph(),
                                                                             LevelOfFill_, 0, Overalloc_));
       } else {
