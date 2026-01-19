@@ -36,7 +36,7 @@
 #include <Galeri_XpetraParameters.hpp>
 
 #include <MueLu.hpp>
-
+#include "MueLu_MasterList.hpp"
 #include <MueLu_BaseClass.hpp>
 #include <MueLu_Level.hpp>
 #include <MueLu_PerfModelReporter.hpp>
@@ -347,13 +347,17 @@ int main_(Teuchos::CommandLineProcessor& clp, Xpetra::UnderlyingLib& lib, int ar
   if (yamlFileName != "") {
     Teuchos::updateParametersFromYamlFileAndBroadcast(yamlFileName, Teuchos::Ptr<ParameterList>(&paramList), *comm);
   } else {
-    if (Node::is_gpu)
-      xmlFileName = (xmlFileName != "" ? xmlFileName : "scaling-gpu.xml");
-    else if (inst == Xpetra::COMPLEX_INT_INT)
-      xmlFileName = (xmlFileName != "" ? xmlFileName : "scaling-complex.xml");
-    else
-      xmlFileName = (xmlFileName != "" ? xmlFileName : "scaling.xml");
-    Teuchos::updateParametersFromXmlFileAndBroadcast(xmlFileName, Teuchos::Ptr<ParameterList>(&paramList), *comm);
+    if (xmlFileName != "DEFAULTS") {
+      if (Node::is_gpu)
+        xmlFileName = (xmlFileName != "" ? xmlFileName : "scaling-gpu.xml");
+      else if (inst == Xpetra::COMPLEX_INT_INT)
+        xmlFileName = (xmlFileName != "" ? xmlFileName : "scaling-complex.xml");
+      else
+        xmlFileName = (xmlFileName != "" ? xmlFileName : "scaling.xml");
+      Teuchos::updateParametersFromXmlFileAndBroadcast(xmlFileName, Teuchos::Ptr<ParameterList>(&paramList), *comm);
+    } else {
+      paramList = *MueLu::MasterList::List();
+    }
   }
 
   Teuchos::RCP<ParameterList> repartitionParamList;
@@ -553,7 +557,7 @@ int main_(Teuchos::CommandLineProcessor& clp, Xpetra::UnderlyingLib& lib, int ar
             filename += "_" + rerunFileSuffix;
           if (numReruns > 1)
             filename += "_run" + MueLu::toString(rerunCount);
-          filename += (lib == Xpetra::UseEpetra ? ".epetra" : ".tpetra");
+          filename += ".tpetra";
 
           savedOut  = dup(STDOUT_FILENO);
           openedOut = fopen(filename.c_str(), "w");
@@ -589,9 +593,7 @@ int main_(Teuchos::CommandLineProcessor& clp, Xpetra::UnderlyingLib& lib, int ar
       // Loop over the setup/solve pairs
       // =========================================================================
       for (int l = 0; l < numLoops; l++) {
-#ifdef HAVE_MUELU_TPETRA
         Tpetra::Details::ProfilingRegion("MueLu Setup/Solve");
-#endif
 
         // Use Kokkos tuning, if requested.  We use the PL-based interface here
         if (kokkosTuning) {

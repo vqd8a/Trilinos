@@ -3699,7 +3699,7 @@ CrsMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>::getNormInf() const {
   Kokkos::parallel_reduce(
       "getNormInf", range_type(0, equilInfo.rowNorms.extent(0)),
       KOKKOS_LAMBDA(local_ordinal_type i, mag_type & max) {
-        max = equilInfo.rowNorms(i);
+        max = Kokkos::max(max, equilInfo.rowNorms(i));
       },
       Kokkos::Max<mag_type>(myMax));
   mag_type totalMax = STM::zero();
@@ -3720,7 +3720,7 @@ CrsMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
   Kokkos::parallel_reduce(
       "getNorm1", range_type(0, equilInfo.colNorms.extent(0)),
       KOKKOS_LAMBDA(local_ordinal_type i, mag_type & max) {
-        max = equilInfo.colNorms(i);
+        max = Kokkos::max(max, equilInfo.colNorms(i));
       },
       Kokkos::Max<mag_type>(myMax));
   mag_type totalMax = STM::zero();
@@ -8939,7 +8939,6 @@ void copyAndPermuteStaticGraphNew(
   using crs_matrix_type = CrsMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>;
 
   typedef typename crs_matrix_type::local_inds_device_view_type::non_const_value_type local_inds_device_value_t;
-  typedef typename crs_matrix_type::local_matrix_device_type k_local_matrix_device_type;
 
   typedef typename Node::execution_space exec_space;
   typedef Kokkos::RangePolicy<exec_space, LO> range_type;
@@ -8997,9 +8996,6 @@ void copyAndPermuteStaticGraphNew(
   };
 
   if (sourceIsLocallyIndexed) {
-    const k_local_matrix_device_type& srcMatDevice = srcMatCrs.getLocalMatrixDevice();
-    const k_local_matrix_device_type& tgtMatDevice = tgtMatCrs.getLocalMatrixDevice();
-
     typename crs_matrix_type::row_ptrs_device_view_type tgtLocalRowPtrsDevice   = tgtMatCrs.getLocalRowPtrsDevice();
     typename crs_matrix_type::local_inds_device_view_type tgtLocalColIndsDevice = tgtMatCrs.getLocalIndicesDevice();
     typename crs_matrix_type::row_ptrs_host_view_type srcLocalRowPtrsHost       = srcMatCrs.getLocalRowPtrsHost();

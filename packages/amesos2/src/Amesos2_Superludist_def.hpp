@@ -1037,7 +1037,7 @@ namespace Amesos2 {
       Teuchos::RCP<const MatrixAdapter<Matrix> > redist_mat
         = this->matrixA_->get(ptrInArg(*superlu_rowmap_));
 
-      // ssame as A's target
+      // same as A's target
       superlu_contig_rowmap_ = superlu_rowmap_;
 
       l_nnz  = as<int_t>(redist_mat->getLocalNNZ());
