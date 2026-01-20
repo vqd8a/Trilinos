@@ -569,9 +569,9 @@ void RILUK<MatrixType>::initialize() {
       }
       if (!isKokkosKernelsStream_) {
         {// VINH TEST
-          auto lclMtx = A_local_crs_->getLocalMatrixDevice();      
-          std::string fnA_mtx = "A_r_" + std::to_string( myRank ) + ".mtx";
-          KokkosSparse::Impl::write_kokkos_crst_matrix<local_matrix_device_type>(lclMtx, fnA_mtx.c_str());
+          //auto lclMtx = A_local_crs_->getLocalMatrixDevice();      
+          //std::string fnA_mtx = "A_r_" + std::to_string( myRank ) + ".mtx";
+          //KokkosSparse::Impl::write_kokkos_crst_matrix<local_matrix_device_type>(lclMtx, fnA_mtx.c_str());
         }// VINH TEST
         Graph_ = rcp(new Ifpack2::IlukGraph<crs_graph_type, kk_handle_type>(A_local_crs_->getCrsGraph(),
                                                                             LevelOfFill_, 0, Overalloc_));
@@ -637,7 +637,7 @@ void RILUK<MatrixType>::initialize() {
     }
 
     // VINH TEST
-    fprintf(stderr, "RILUK<MatrixType>::initialize (), rank %d, BEFORE create_spiluk_handle and spiluk_symbolic, LevelOfFill_ %d\n", myRank, LevelOfFill_);
+    //fprintf(stderr, "RILUK<MatrixType>::initialize (), rank %d, BEFORE create_spiluk_handle and spiluk_symbolic, LevelOfFill_ %d\n", myRank, LevelOfFill_);
     // END VINH TEST
     if (this->isKokkosKernelsSpiluk_) {
       if (!isKokkosKernelsStream_) {
@@ -662,7 +662,7 @@ void RILUK<MatrixType>::initialize() {
       Graph_->initialize();
     }
     // VINH TEST
-    fprintf(stderr, "RILUK<MatrixType>::initialize (), rank %d, AFTER create_spiluk_handle and spiluk_symbolic\n", myRank);
+    //fprintf(stderr, "RILUK<MatrixType>::initialize (), rank %d, AFTER create_spiluk_handle and spiluk_symbolic\n", myRank);
     // END VINH TEST
 
     allocate_L_and_U();
