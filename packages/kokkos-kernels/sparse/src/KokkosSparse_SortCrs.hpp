@@ -57,8 +57,7 @@ void sort_crs_matrix(const execution_space& exec, const rowmap_t& rowmap, const 
     if (option == SortAlgorithm::DEFAULT) {
       option = SortAlgorithm::SHELL;
     } else if ((option != SortAlgorithm::RADIX) && (option != SortAlgorithm::SHELL)) {
-      throw std::invalid_argument(
-        "sort_csr_matrix: Only RADIX and SHELL sort are available on CPU.");
+      throw std::invalid_argument("sort_csr_matrix: Only RADIX and SHELL sort are available on CPU.");
     }
 
     if (option == SortAlgorithm::RADIX)
