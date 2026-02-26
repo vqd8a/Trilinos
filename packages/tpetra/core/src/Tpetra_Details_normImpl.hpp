@@ -24,11 +24,8 @@
 #include "Teuchos_ArrayView.hpp"
 #include "Teuchos_CommHelpers.hpp"
 #include "KokkosBlas.hpp"
-#if KOKKOS_VERSION >= 40799
 #include "KokkosKernels_ArithTraits.hpp"
-#else
-#include "Kokkos_ArithTraits.hpp"
-#endif
+#include "Tpetra_Details_Profiling.hpp"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 namespace Teuchos {
@@ -88,6 +85,8 @@ void lclNormImpl(const RV& normsOut,
   using Kokkos::subview;
   using mag_type = typename RV::non_const_value_type;
 
+  Details::ProfilingRegion region("Tpetra::Details::lclNormImpl");
+
   static_assert(static_cast<int>(RV::rank) == 1,
                 "Tpetra::MultiVector::lclNormImpl: "
                 "The first argument normsOut must have rank 1.");
@@ -109,11 +108,7 @@ void lclNormImpl(const RV& normsOut,
                                                                                                                                                                                                                   "the Tpetra developers.");
 
   if (lclNumRows == 0) {
-#if KOKKOS_VERSION >= 40799
     const mag_type zeroMag = KokkosKernels::ArithTraits<mag_type>::zero();
-#else
-    const mag_type zeroMag = Kokkos::ArithTraits<mag_type>::zero();
-#endif
     // DEEP_COPY REVIEW - VALUE-TO-DEVICE
     using execution_space = typename RV::execution_space;
     Kokkos::deep_copy(execution_space(), normsOut, zeroMag);
@@ -167,11 +162,7 @@ class SquareRootFunctor {
   KOKKOS_INLINE_FUNCTION void
   operator()(const size_type& i) const {
     typedef typename ViewType::non_const_value_type value_type;
-#if KOKKOS_VERSION >= 40799
     typedef KokkosKernels::ArithTraits<value_type> KAT;
-#else
-    typedef Kokkos::ArithTraits<value_type> KAT;
-#endif
     theView_(i) = KAT::sqrt(theView_(i));
   }
 
@@ -188,6 +179,8 @@ void gblNormImpl(const RV& normsOut,
   using Teuchos::REDUCE_SUM;
   using Teuchos::reduceAll;
   typedef typename RV::non_const_value_type mag_type;
+
+  Details::ProfilingRegion region("Tpetra::Details::gblNormImpl");
 
   const size_t numVecs = normsOut.extent(0);
 
@@ -245,11 +238,7 @@ void gblNormImpl(const RV& normsOut,
                      typename RV::host_mirror_space::memory_space>::value;
     if (inHostMemory) {
       for (size_t j = 0; j < numVecs; ++j) {
-#if KOKKOS_VERSION >= 40799
         normsOut(j) = KokkosKernels::ArithTraits<mag_type>::sqrt(normsOut(j));
-#else
-        normsOut(j) = Kokkos::ArithTraits<mag_type>::sqrt(normsOut(j));
-#endif
       }
     } else {
       // There's not as much parallelism now, but that's OK.  The

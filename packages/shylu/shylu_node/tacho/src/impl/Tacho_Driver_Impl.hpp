@@ -35,7 +35,7 @@ Driver<VT, DT>::Driver()
       #else
       _variant(-1), // sequential by default
       #endif
-      _nstreams(16), _pivot_tol(0.0),
+      _nstreams(16), _shift_diag(false), _shift(0.0), _pivot_tol(0.0),
 #if defined(KOKKOS_ENABLE_HIP)
       _store_transpose(true)
 #else
@@ -209,13 +209,17 @@ template <typename VT, typename DT> void Driver<VT, DT>::setPivotTolerance(const
   _pivot_tol = pivot_tol;
 }
 
+template <typename VT, typename DT> void Driver<VT, DT>::shiftDiagonal() {
+  _shift_diag = true;
+}
+
 template <typename VT, typename DT> void Driver<VT, DT>::useNoPivotTolerance() {
   _pivot_tol = 0.0;
 }
 
 template <typename VT, typename DT> void Driver<VT, DT>::useDefaultPivotTolerance() {
   using arith_traits = ArithTraits<value_type>;
-  _pivot_tol = sqrt(arith_traits::epsilon());
+  _pivot_tol = Kokkos::sqrt(arith_traits::epsilon());
 }
 
 template <typename VT, typename DT> void Driver<VT, DT>::storeExplicitTranspose(bool flag) {
@@ -420,9 +424,12 @@ template <typename VT, typename DT> int Driver<VT, DT>::initialize() {
                           _blk_super_panel_colidx, _stree_parent, _stree_ptr, _stree_children, _stree_level, _stree_roots,
                           _verbose);
 
-    factory.setLevelSetMember(_variant, _device_level_cut, _device_factor_thres, _device_solve_thres, _nstreams);
+    factory.setLevelSetMember(_variant, _device_level_cut, _device_factor_thres, _device_solve_thres, _store_transpose, _nstreams);
 
     factory.createObject(_N);
+  }
+  if (_shift_diag) {
+    Kokkos::resize(_dv, _m);
   }
   return 0;
 }
@@ -432,28 +439,61 @@ template <typename VT, typename DT> int Driver<VT, DT>::factorize(const value_ty
 }
 
 template <typename VT, typename DT> int Driver<VT, DT>::factorize(const value_type_array &ax, ordinal_type method) {
+  using arith_traits = ArithTraits<value_type>;
   if (method != _method) {
     setFactorizationMethod(method);
+  }
+  mag_type shift(0.0);
+  if (_shift_diag) {
+    const value_type zero(0.0);
+    const ordinal_type m = _m;
+    Kokkos::RangePolicy<exec_space> range_policy(0, m);
+
+    // Compute alpha = ||A||_2
+    value_type alpha(zero);
+    //for (size_t i=0; i<ax.extent(0); i++) alpha += arith_traits::conj(ax(i)) * ax(i);
+    const auto ap = _ap;
+    const auto aj = _aj;
+    const auto dv = _dv;
+    // * parallel-sum among rows
+    Kokkos::parallel_for(
+      range_policy, KOKKOS_LAMBDA(const ordinal_type &i) {
+        dv(i) = zero;
+        for (size_type k=ap(i); k<ap(i+1); k++) {
+          dv(i) += arith_traits::conj(ax(k)) * ax(k);
+        }
+      });
+    // * atomic_sum row-sums
+    Kokkos::parallel_reduce(
+      range_policy, KOKKOS_LAMBDA (int i, value_type &tmp) {
+        tmp += dv(i);
+      }, alpha);
+    // Compute shift = sqrt(eps * ||A||_2)
+    shift = Kokkos::sqrt(arith_traits::abs(alpha * arith_traits::epsilon()));
   }
   if (_verbose) {
     switch (_method) {
     case LDL_nopiv: {
       printf("TachoSolver: Factorize LDL (no pivot)\n");
+      if (_shift_diag) printf(" > shifting diagonal by %.2e\n",shift);
       printf("=====================================\n");
       break;
     }
     case Cholesky: {
       printf("TachoSolver: Factorize Cholesky\n");
+      if (_shift_diag) printf(" > shifting diagonal by %.2e\n",shift);
       printf("===============================\n");
       break;
     }
     case LDL: {
       printf("TachoSolver: Factorize LDL\n");
+      if (_shift_diag) printf(" > shifting diagonal by %.2e\n",shift);
       printf("==========================\n");
       break;
     }
     case SymLU: {
       printf("TachoSolver: Factorize SymLU\n");
+      if (_shift_diag) printf(" > shifting diagonal by %.2e\n",shift);
       printf("============================\n");
       break;
     }
@@ -462,16 +502,16 @@ template <typename VT, typename DT> int Driver<VT, DT>::factorize(const value_ty
       printf( " Small matrix\n" );
     }
   }
-
+  _shift = shift; // internally keep track of the current shift
   if (_m <= _small_problem_thres) {
-    factorize_small_host(ax);
+    factorize_small_host(ax, shift);
   } else {
-    _N->factorize(ax, _store_transpose, _pivot_tol, _verbose);
+    _N->factorize(ax, _store_transpose, shift, _pivot_tol, _verbose);
   }
   return 0;
 }
 
-template <typename VT, typename DT> int Driver<VT, DT>::factorize_small_host(const value_type_array &ax) {
+template <typename VT, typename DT> int Driver<VT, DT>::factorize_small_host(const value_type_array &ax, const mag_type shift) {
   double t_copy(0), t_factor(0);
   {
     Kokkos::Timer timer;
@@ -489,6 +529,7 @@ template <typename VT, typename DT> int Driver<VT, DT>::factorize_small_host(con
                            (_method == SymLU));                  /// full matrix
         if (flag)
           _A(i, col) = h_ax(j);
+        if (i == col) _A(i, col) += value_type(shift);
       }
     }
     t_copy = timer.seconds();
@@ -653,11 +694,11 @@ int Driver<VT, DT>::solve_small_host(const value_type_matrix &x, const value_typ
 
 template <typename VT, typename DT>
 double Driver<VT, DT>::computeRelativeResidual(const value_type_array &ax, const value_type_matrix &x,
-                                               const value_type_matrix &b) {
+                                               const value_type_matrix &b, const mag_type shift) {
   CrsMatrixBase<value_type, device_type> A;
   A.setExternalMatrix(_m, _m, _nnz, _ap, _aj, ax);
 
-  return Tacho::computeRelativeResidual(A, x, b, _verbose);
+  return Tacho::computeRelativeResidual(A, x, b, shift, _verbose);
 }
 
 template <typename VT, typename DT>
@@ -671,7 +712,7 @@ void Driver<VT, DT>::computeSpMV(const value_type_array &ax, const value_type_ma
 template <typename VT, typename DT> int Driver<VT, DT>::exportFactorsToCrsMatrix(crs_matrix_type &A) {
   if (_m <= _small_problem_thres) {
     typedef ArithTraits<value_type> ats;
-    const typename ats::mag_type zero(0);
+    const mag_type zero(0);
 
     /// count nonzero elements in dense U
     const ordinal_type m = _m;
@@ -766,6 +807,9 @@ template <typename VT, typename DT> int Driver<VT, DT>::release() {
     _stree_roots = ordinal_type_array_host();
 
     _A = value_type_matrix_host();
+    _D = value_type_matrix_host();
+    _P = ordinal_type_array_host();
+    _dv = value_type_array();
 
     _verbose = 0;
     _small_problem_thres = 1024;

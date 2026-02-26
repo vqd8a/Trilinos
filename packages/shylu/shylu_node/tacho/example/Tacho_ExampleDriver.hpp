@@ -50,6 +50,7 @@ template <typename value_type> int driver(int argc, char *argv[]) {
 #else
   bool storeTranspose = false;
 #endif
+  bool shiftDiag = false;
   bool perturbPivot = false;
   int nrhs = 1;
   bool randomRHS = false;
@@ -129,7 +130,7 @@ template <typename value_type> int driver(int argc, char *argv[]) {
     std::cout << std::endl << "   ---------------------- " << std::endl;
     Tacho::printExecSpaceConfiguration<typename device_type::execution_space>("DeviceSpace", detail);
     Tacho::printExecSpaceConfiguration<typename host_device_type::execution_space>("HostSpace", detail);
-    std::cout << "     Method Name:: " << method_name << std::endl;
+    std::cout << "     Method Name:: " << method_name << " (" << method << ")" << std::endl;
     std::cout << "     Solver Type:: " << variant << std::endl;
     std::cout << "          # RHSs:: " << nrhs << std::endl << std::endl;
     if (default_setup) {
@@ -222,6 +223,10 @@ template <typename value_type> int driver(int argc, char *argv[]) {
       solver.setLevelSetOptionNumStreams(nstreams);
       solver.setSmallProblemThresholdsize(small_problem_thres);
       solver.setLevelSetOptionDeviceFunctionThreshold(device_factor_thres, device_solve_thres);
+      if (shiftDiag) {
+        if (verbose) std::cout << " > shift diagonals with a small pertubation" << std::endl;
+        solver.shiftDiagonal();
+      }
       if (perturbPivot) {
         if (verbose) std::cout << " > perturb tiny pivots" << std::endl;
         solver.useDefaultPivotTolerance();

@@ -19,11 +19,7 @@
 #include <Tpetra_Distributor.hpp>
 #include <Tpetra_BlockMultiVector.hpp>
 
-#if KOKKOS_VERSION >= 40799
 #include <KokkosKernels_ArithTraits.hpp>
-#else
-#include <Kokkos_ArithTraits.hpp>
-#endif
 #include <KokkosBatched_Util.hpp>
 #include <KokkosBatched_Vector.hpp>
 #include <KokkosBatched_Copy_Decl.hpp>
@@ -424,13 +420,8 @@ struct AsyncableImport {
   void createExecutionSpaceInstances() {
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP) || defined(KOKKOS_ENABLE_SYCL)
     // The following line creates 8 streams:
-#if KOKKOS_VERSION >= 40699
     exec_instances =
         Kokkos::Experimental::partition_space(execution_space(), std::vector<int>(8, 1));
-#else
-    exec_instances =
-        Kokkos::Experimental::partition_space(execution_space(), 1, 1, 1, 1, 1, 1, 1, 1);
-#endif
 #endif
   }
 
@@ -1948,8 +1939,7 @@ void performSymbolicPhase(const Teuchos::RCP<const typename BlockHelperDetails::
 
   using impl_type = BlockHelperDetails::ImplType<MatrixType>;
 
-  using execution_space      = typename impl_type::execution_space;
-  using host_execution_space = typename impl_type::host_execution_space;
+  using execution_space = typename impl_type::execution_space;
 
   using local_ordinal_type           = typename impl_type::local_ordinal_type;
   using global_ordinal_type          = typename impl_type::global_ordinal_type;
@@ -1958,10 +1948,11 @@ void performSymbolicPhase(const Teuchos::RCP<const typename BlockHelperDetails::
   using size_type_1d_view            = typename impl_type::size_type_1d_view;
   using vector_type_3d_view          = typename impl_type::vector_type_3d_view;
   using vector_type_4d_view          = typename impl_type::vector_type_4d_view;
-  using internal_vector_type_3d_view = typename impl_type::internal_vector_type_3d_view;
   using crs_matrix_type              = typename impl_type::tpetra_crs_matrix_type;
   using block_crs_matrix_type        = typename impl_type::tpetra_block_crs_matrix_type;
   using btdm_scalar_type_3d_view     = typename impl_type::btdm_scalar_type_3d_view;
+  using internal_vector_type_3d_view = typename impl_type::internal_vector_type_3d_view;
+  using lo_traits                    = Tpetra::Details::OrdinalTraits<local_ordinal_type>;
 
   constexpr int vector_length          = impl_type::vector_length;
   constexpr int internal_vector_length = impl_type::internal_vector_length;
@@ -1975,90 +1966,97 @@ void performSymbolicPhase(const Teuchos::RCP<const typename BlockHelperDetails::
   TEUCHOS_ASSERT(hasBlockCrsMatrix || g->getLocalNumRows() != 0);
   const local_ordinal_type blocksize = hasBlockCrsMatrix ? A->getBlockSize() : A->getLocalNumRows() / g->getLocalNumRows();
 
-  // mirroring to host
-  const auto partptr      = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), interf.partptr);
-  const auto lclrow       = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), interf.lclrow);
-  const auto rowidx2part  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), interf.rowidx2part);
-  const auto part2rowidx0 = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), interf.part2rowidx0);
-  const auto packptr      = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), interf.packptr);
+  const auto partptr      = interf.partptr;
+  const auto lclrow       = interf.lclrow;
+  const auto rowidx2part  = interf.rowidx2part;
+  const auto part2rowidx0 = interf.part2rowidx0;
+  const auto packptr      = interf.packptr;
 
-  const local_ordinal_type nrows = partptr(partptr.extent(0) - 1);
+  // TODO: add nrows as a member of part interface?
+  const local_ordinal_type nrows = Kokkos::create_mirror_view_and_copy(
+      Kokkos::HostSpace(), Kokkos::subview(partptr, partptr.extent(0) - 1))();
 
-  Kokkos::View<local_ordinal_type *, host_execution_space> col2row("col2row", A->getLocalNumCols());
+  Kokkos::View<local_ordinal_type *, execution_space> col2row("col2row", A->getLocalNumCols());
 
   // find column to row map on host
 
-  Kokkos::deep_copy(col2row, Teuchos::OrdinalTraits<local_ordinal_type>::invalid());
+  Kokkos::deep_copy(execution_space(), col2row, Teuchos::OrdinalTraits<local_ordinal_type>::invalid());
   {
-    const auto rowmap = g->getRowMap();
-    const auto colmap = g->getColMap();
-    const auto dommap = g->getDomainMap();
-    TEUCHOS_ASSERT(!(rowmap.is_null() || colmap.is_null() || dommap.is_null()));
-    rowmap->lazyPushToHost();
-    colmap->lazyPushToHost();
-    dommap->lazyPushToHost();
+    TEUCHOS_ASSERT(!(g->getRowMap().is_null() || g->getColMap().is_null() || g->getDomainMap().is_null()));
+#if defined(BLOCKTRIDICONTAINER_DEBUG)
+    {
+      // On host: check that row, col, domain maps are consistent
+      auto rowmapHost = g->getRowMap();
+      auto colmapHost = g->getColMap();
+      auto dommapHost = g->getDomainMap();
+      for (local_ordinal_type lr = 0; lr < nrows; lr++) {
+        const global_ordinal_type gid = rowmapHost->getGlobalElement(lr);
+        TEUCHOS_ASSERT(gid != Teuchos::OrdinalTraits<global_ordinal_type>::invalid());
+        if (dommapHost->isNodeGlobalElement(gid)) {
+          const local_ordinal_type lc = colmapHost->getLocalElement(gid);
+          TEUCHOS_TEST_FOR_EXCEPT_MSG(lc == Teuchos::OrdinalTraits<local_ordinal_type>::invalid(),
+                                      BlockHelperDetails::get_msg_prefix(comm) << "GID " << gid
+                                                                               << " gives an invalid local column.");
+        }
+      }
+    }
+#endif
+    auto rowmap = g->getRowMap()->getLocalMap();
+    auto colmap = g->getColMap()->getLocalMap();
+    auto dommap = g->getDomainMap()->getLocalMap();
 
-#if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__) && !defined(__SYCL_DEVICE_ONLY__)
-    const Kokkos::RangePolicy<host_execution_space> policy(0, nrows);
+    const Kokkos::RangePolicy<execution_space> policy(0, nrows);
     Kokkos::parallel_for(
         "performSymbolicPhase::RangePolicy::col2row",
         policy, KOKKOS_LAMBDA(const local_ordinal_type &lr) {
-          const global_ordinal_type gid = rowmap->getGlobalElement(lr);
-          TEUCHOS_ASSERT(gid != Teuchos::OrdinalTraits<global_ordinal_type>::invalid());
-          if (dommap->isNodeGlobalElement(gid)) {
-            const local_ordinal_type lc = colmap->getLocalElement(gid);
-#if defined(BLOCKTRIDICONTAINER_DEBUG)
-            TEUCHOS_TEST_FOR_EXCEPT_MSG(lc == Teuchos::OrdinalTraits<local_ordinal_type>::invalid(),
-                                        BlockHelperDetails::get_msg_prefix(comm) << "GID " << gid
-                                                                                 << " gives an invalid local column.");
-#endif
-            col2row(lc) = lr;
+          const global_ordinal_type gid = rowmap.getGlobalElement(lr);
+          if (dommap.getLocalElement(gid) != lo_traits::invalid()) {
+            const local_ordinal_type lc = colmap.getLocalElement(gid);
+            col2row(lc)                 = lr;
           }
         });
-#endif
   }
 
   // construct the D and R graphs in A = D + R.
   {
-    const auto local_graph        = g->getLocalGraphHost();
+    const auto local_graph        = g->getLocalGraphDevice();
     const auto local_graph_rowptr = local_graph.row_map;
     TEUCHOS_ASSERT(local_graph_rowptr.size() == static_cast<size_t>(nrows + 1));
     const auto local_graph_colidx = local_graph.entries;
 
     // assume no overlap.
 
-    Kokkos::View<local_ordinal_type *, host_execution_space> lclrow2idx("lclrow2idx", nrows);
+    Kokkos::View<local_ordinal_type *, execution_space> lclrow2idx("lclrow2idx", nrows);
     {
-      const Kokkos::RangePolicy<host_execution_space> policy(0, nrows);
+      const Kokkos::RangePolicy<execution_space> policy(0, nrows);
       Kokkos::parallel_for(
           "performSymbolicPhase::RangePolicy::lclrow2idx",
           policy, KOKKOS_LAMBDA(const local_ordinal_type &i) {
-            lclrow2idx[lclrow(i)] = i;
+            lclrow2idx(lclrow(i)) = i;
           });
     }
 
     // count (block) nnzs in D and R.
-    typedef BlockHelperDetails::SumReducer<size_type, 3, host_execution_space> sum_reducer_type;
-    typename sum_reducer_type::value_type sum_reducer_value;
+    size_type D_nnz, R_nnz_owned, R_nnz_remote;
     {
-      const Kokkos::RangePolicy<host_execution_space> policy(0, nrows);
+      const Kokkos::RangePolicy<execution_space> policy(0, nrows);
       Kokkos::parallel_reduce
           // profiling interface does not work
           (  //"performSymbolicPhase::RangePolicy::count_nnz",
-              policy, KOKKOS_LAMBDA(const local_ordinal_type &lr, typename sum_reducer_type::value_type &update) {
+              policy, KOKKOS_LAMBDA(const local_ordinal_type &lr, size_type &update_D_nnz, size_type &update_R_nnz_owned, size_type &update_R_nnz_remote) {
                 // LID -> index.
-                const local_ordinal_type ri0 = lclrow2idx[lr];
+                const local_ordinal_type ri0 = lclrow2idx(lr);
                 const local_ordinal_type pi0 = rowidx2part(ri0);
                 for (size_type j = local_graph_rowptr(lr); j < local_graph_rowptr(lr + 1); ++j) {
                   const local_ordinal_type lc   = local_graph_colidx(j);
-                  const local_ordinal_type lc2r = col2row[lc];
+                  const local_ordinal_type lc2r = col2row(lc);
                   bool incr_R                   = false;
                   do {  // breakable
                     if (lc2r == (local_ordinal_type)-1) {
                       incr_R = true;
                       break;
                     }
-                    const local_ordinal_type ri = lclrow2idx[lc2r];
+                    const local_ordinal_type ri = lclrow2idx(lc2r);
                     const local_ordinal_type pi = rowidx2part(ri);
                     if (pi != pi0) {
                       incr_R = true;
@@ -2068,23 +2066,20 @@ void performSymbolicPhase(const Teuchos::RCP<const typename BlockHelperDetails::
                     // LID space, tridiag LIDs in a row are not necessarily related by
                     // {-1, 0, 1}.
                     if (ri0 + 1 >= ri && ri0 <= ri + 1)
-                      ++update.v[0];  // D_nnz
+                      ++update_D_nnz;
                     else
                       incr_R = true;
                   } while (0);
                   if (incr_R) {
                     if (lc < nrows)
-                      ++update.v[1];  // R_nnz_owned
+                      ++update_R_nnz_owned;
                     else
-                      ++update.v[2];  // R_nnz_remote
+                      ++update_R_nnz_remote;
                   }
                 }
               },
-              sum_reducer_type(sum_reducer_value));
+              D_nnz, R_nnz_owned, R_nnz_remote);
     }
-    size_type D_nnz        = sum_reducer_value.v[0];
-    size_type R_nnz_owned  = sum_reducer_value.v[1];
-    size_type R_nnz_remote = sum_reducer_value.v[2];
 
     if (!overlap_communication_and_computation) {
       R_nnz_owned += R_nnz_remote;
@@ -2093,10 +2088,10 @@ void performSymbolicPhase(const Teuchos::RCP<const typename BlockHelperDetails::
 
     // construct the D_00 graph.
     {
-      const auto flat_td_ptr = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), btdm.flat_td_ptr);
+      const auto flat_td_ptr = btdm.flat_td_ptr;
 
       btdm.A_colindsub         = local_ordinal_type_1d_view("btdm.A_colindsub", D_nnz);
-      const auto D_A_colindsub = Kokkos::create_mirror_view(btdm.A_colindsub);
+      const auto D_A_colindsub = btdm.A_colindsub;
 
 #if defined(BLOCKTRIDICONTAINER_DEBUG)
       Kokkos::deep_copy(D_A_colindsub, Teuchos::OrdinalTraits<local_ordinal_type>::invalid());
@@ -2105,9 +2100,9 @@ void performSymbolicPhase(const Teuchos::RCP<const typename BlockHelperDetails::
       const local_ordinal_type nparts = partptr.extent(0) - 1;
 
       {
-        const Kokkos::RangePolicy<host_execution_space> policy(0, nparts);
+        const Kokkos::RangePolicy<execution_space> policy(0, nparts);
         Kokkos::parallel_for(
-            "performSymbolicPhase::RangePolicy<host_execution_space>::D_graph",
+            "performSymbolicPhase::RangePolicy<execution_space>::D_graph",
             policy, KOKKOS_LAMBDA(const local_ordinal_type &pi0) {
               const local_ordinal_type part_ri0 = part2rowidx0(pi0);
               local_ordinal_type offset         = 0;
@@ -2131,10 +2126,12 @@ void performSymbolicPhase(const Teuchos::RCP<const typename BlockHelperDetails::
             });
       }
 #if defined(BLOCKTRIDICONTAINER_DEBUG)
-      for (size_t i = 0; i < D_A_colindsub.extent(0); ++i)
-        TEUCHOS_ASSERT(D_A_colindsub(i) != Teuchos::OrdinalTraits<local_ordinal_type>::invalid());
+      {
+        auto D_A_colindsub_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), D_A_colindsub);
+        for (size_t i = 0; i < D_A_colindsub_host.extent(0); ++i)
+          TEUCHOS_ASSERT(D_A_colindsub_host(i) != Teuchos::OrdinalTraits<local_ordinal_type>::invalid());
+      }
 #endif
-      Kokkos::deep_copy(btdm.A_colindsub, D_A_colindsub);
 
       // Allocate values.
       {
@@ -2157,19 +2154,19 @@ void performSymbolicPhase(const Teuchos::RCP<const typename BlockHelperDetails::
       amd.rowptr      = size_type_1d_view("amd.rowptr", nrows + 1);
       amd.A_colindsub = local_ordinal_type_1d_view(do_not_initialize_tag("amd.A_colindsub"), R_nnz_owned);
 
-      const auto R_rowptr      = Kokkos::create_mirror_view(amd.rowptr);
-      const auto R_A_colindsub = Kokkos::create_mirror_view(amd.A_colindsub);
+      const auto R_rowptr      = amd.rowptr;
+      const auto R_A_colindsub = amd.A_colindsub;
 
       amd.rowptr_remote      = size_type_1d_view("amd.rowptr_remote", overlap_communication_and_computation ? nrows + 1 : 0);
       amd.A_colindsub_remote = local_ordinal_type_1d_view(do_not_initialize_tag("amd.A_colindsub_remote"), R_nnz_remote);
 
-      const auto R_rowptr_remote      = Kokkos::create_mirror_view(amd.rowptr_remote);
-      const auto R_A_colindsub_remote = Kokkos::create_mirror_view(amd.A_colindsub_remote);
+      const auto R_rowptr_remote      = amd.rowptr_remote;
+      const auto R_A_colindsub_remote = amd.A_colindsub_remote;
 
       {
-        const Kokkos::RangePolicy<host_execution_space> policy(0, nrows);
+        const Kokkos::RangePolicy<execution_space> policy(0, nrows);
         Kokkos::parallel_for(
-            "performSymbolicPhase::RangePolicy<host_execution_space>::R_graph_count",
+            "performSymbolicPhase::RangePolicy<execution_space>::R_graph_count",
             policy, KOKKOS_LAMBDA(const local_ordinal_type &lr) {
               const local_ordinal_type ri0 = lclrow2idx[lr];
               const local_ordinal_type pi0 = rowidx2part(ri0);
@@ -2193,59 +2190,48 @@ void performSymbolicPhase(const Teuchos::RCP<const typename BlockHelperDetails::
               }
             });
       }
-
-      // exclusive scan
-      typedef BlockHelperDetails::ArrayValueType<size_type, 2> update_type;
+      // Prefix sums to finish computing R_rowptr and R_rowptr_remote.
+      // Also check that the final elements of R_rowptr (aka amd.rowptr)
+      // and R_rowptr_remote (aka amd.rowptr_remote) match the total entry counts computed earlier.
       {
-        Kokkos::RangePolicy<host_execution_space> policy(0, nrows + 1);
-        Kokkos::parallel_scan(
-            "performSymbolicPhase::RangePolicy<host_execution_space>::R_graph_fill",
-            policy, KOKKOS_LAMBDA(const local_ordinal_type &lr, update_type &update, const bool &final) {
-              update_type val;
-              val.v[0] = R_rowptr(lr);
-              if (overlap_communication_and_computation)
-                val.v[1] = R_rowptr_remote(lr);
-
-              if (final) {
-                R_rowptr(lr) = update.v[0];
-                if (overlap_communication_and_computation)
-                  R_rowptr_remote(lr) = update.v[1];
-
-                if (lr < nrows) {
-                  const local_ordinal_type ri0 = lclrow2idx[lr];
-                  const local_ordinal_type pi0 = rowidx2part(ri0);
-
-                  size_type cnt_rowptr        = R_rowptr(lr);
-                  size_type cnt_rowptr_remote = overlap_communication_and_computation ? R_rowptr_remote(lr) : 0;  // when not overlap_communication_and_computation, this value is garbage
-
-                  const size_type j0 = local_graph_rowptr(lr);
-                  for (size_type j = j0; j < local_graph_rowptr(lr + 1); ++j) {
-                    const local_ordinal_type lc   = local_graph_colidx(j);
-                    const local_ordinal_type lc2r = col2row[lc];
-                    if (lc2r != (local_ordinal_type)-1) {
-                      const local_ordinal_type ri = lclrow2idx[lc2r];
-                      const local_ordinal_type pi = rowidx2part(ri);
-                      if (pi == pi0 && ri + 1 >= ri0 && ri <= ri0 + 1)
-                        continue;
-                    }
-                    const local_ordinal_type row_entry = j - j0;
-                    if (!overlap_communication_and_computation || lc < nrows)
-                      R_A_colindsub(cnt_rowptr++) = row_entry;
-                    else
-                      R_A_colindsub_remote(cnt_rowptr_remote++) = row_entry;
-                  }
-                }
-              }
-              update += val;
-            });
+        size_type R_rowptr_final;
+        KokkosKernels::Impl::kk_exclusive_parallel_prefix_sum<execution_space>(nrows + 1, R_rowptr, R_rowptr_final);
+        TEUCHOS_ASSERT(R_rowptr_final == R_nnz_owned);
+        if (overlap_communication_and_computation) {
+          size_type R_rowptr_remote_final;
+          KokkosKernels::Impl::kk_exclusive_parallel_prefix_sum<execution_space>(nrows + 1, R_rowptr_remote, R_rowptr_remote_final);
+          TEUCHOS_ASSERT(R_rowptr_remote_final == R_nnz_remote);
+        }
       }
-      TEUCHOS_ASSERT(R_rowptr(nrows) == R_nnz_owned);
-      Kokkos::deep_copy(amd.rowptr, R_rowptr);
-      Kokkos::deep_copy(amd.A_colindsub, R_A_colindsub);
-      if (overlap_communication_and_computation) {
-        TEUCHOS_ASSERT(R_rowptr_remote(nrows) == R_nnz_remote);
-        Kokkos::deep_copy(amd.rowptr_remote, R_rowptr_remote);
-        Kokkos::deep_copy(amd.A_colindsub_remote, R_A_colindsub_remote);
+      {
+        // Fill R graph entries (R_A_colindsub and R_A_colindsub_remote)
+        Kokkos::RangePolicy<execution_space> policy(0, nrows);
+        Kokkos::parallel_for(
+            "performSymbolicPhase::RangePolicy<execution_space>::R_graph_fill",
+            policy, KOKKOS_LAMBDA(const local_ordinal_type &lr) {
+              const local_ordinal_type ri0 = lclrow2idx[lr];
+              const local_ordinal_type pi0 = rowidx2part(ri0);
+
+              size_type cnt_rowptr        = R_rowptr(lr);
+              size_type cnt_rowptr_remote = overlap_communication_and_computation ? R_rowptr_remote(lr) : 0;  // when not overlap_communication_and_computation, this value is garbage
+
+              const size_type j0 = local_graph_rowptr(lr);
+              for (size_type j = j0; j < local_graph_rowptr(lr + 1); ++j) {
+                const local_ordinal_type lc   = local_graph_colidx(j);
+                const local_ordinal_type lc2r = col2row[lc];
+                if (lc2r != (local_ordinal_type)-1) {
+                  const local_ordinal_type ri = lclrow2idx[lc2r];
+                  const local_ordinal_type pi = rowidx2part(ri);
+                  if (pi == pi0 && ri + 1 >= ri0 && ri <= ri0 + 1)
+                    continue;
+                }
+                const local_ordinal_type row_entry = j - j0;
+                if (!overlap_communication_and_computation || lc < nrows)
+                  R_A_colindsub(cnt_rowptr++) = row_entry;
+                else
+                  R_A_colindsub_remote(cnt_rowptr_remote++) = row_entry;
+              }
+            });
       }
 
       // Allocate or view values.
@@ -2278,7 +2264,7 @@ void performSymbolicPhase(const Teuchos::RCP<const typename BlockHelperDetails::
     bool is_async_importer_active    = !async_importer.is_null();
     local_ordinal_type_1d_view dm2cm = is_async_importer_active ? async_importer->dm2cm : local_ordinal_type_1d_view();
     bool ownedRemoteSeparate         = overlap_communication_and_computation || !is_async_importer_active;
-    BlockHelperDetails::precompute_A_x_offsets<MatrixType>(amd, interf, g, dm2cm, blocksize, ownedRemoteSeparate);
+    BlockHelperDetails::ComputeResidualVector<MatrixType>::precompute_A_x_offsets(amd, interf, g, dm2cm, blocksize, ownedRemoteSeparate);
   }
 
   // If using fused block Jacobi path, allocate diagonal inverses here (d_inv) and find diagonal offsets.
@@ -2463,16 +2449,8 @@ solveMultiVector(const typename Kokkos::TeamPolicy<typename impl_type::execution
   using btdm_magnitude_type = typename impl_type::btdm_magnitude_type;
 
   // constant
-#if KOKKOS_VERSION >= 40799
-  const auto one = KokkosKernels::ArithTraits<btdm_magnitude_type>::one();
-#else
-  const auto one  = Kokkos::ArithTraits<btdm_magnitude_type>::one();
-#endif
-#if KOKKOS_VERSION >= 40799
+  const auto one  = KokkosKernels::ArithTraits<btdm_magnitude_type>::one();
   const auto zero = KokkosKernels::ArithTraits<btdm_magnitude_type>::zero();
-#else
-  const auto zero = Kokkos::ArithTraits<btdm_magnitude_type>::zero();
-#endif
 
   // subview pattern
   auto A  = Kokkos::subview(D_internal_vector_values, i0, Kokkos::ALL(), Kokkos::ALL(), v);
@@ -2571,16 +2549,8 @@ solveSingleVectorNew(const typename Kokkos::TeamPolicy<typename impl_type::execu
   auto X = X_internal_vector_values.data();
 
   // constant
-#if KOKKOS_VERSION >= 40799
-  const auto one = KokkosKernels::ArithTraits<btdm_magnitude_type>::one();
-#else
-  const auto one  = Kokkos::ArithTraits<btdm_magnitude_type>::one();
-#endif
-#if KOKKOS_VERSION >= 40799
+  const auto one  = KokkosKernels::ArithTraits<btdm_magnitude_type>::one();
   const auto zero = KokkosKernels::ArithTraits<btdm_magnitude_type>::zero();
-#else
-  const auto zero = Kokkos::ArithTraits<btdm_magnitude_type>::zero();
-#endif
   // const local_ordinal_type num_vectors = X_scalar_values.extent(2);
 
   // const local_ordinal_type blocksize = D_scalar_values.extent(1);
@@ -3229,11 +3199,7 @@ struct ExtractAndFactorizeTridiags {
     typedef typename default_mode_and_algo_type::algo_type default_algo_type;
 
     // constant
-#if KOKKOS_VERSION >= 40799
     const auto one = KokkosKernels::ArithTraits<btdm_magnitude_type>::one();
-#else
-    const auto one = Kokkos::ArithTraits<btdm_magnitude_type>::one();
-#endif
 
 #ifdef IFPACK2_BLOCKTRIDICONTAINER_USE_PRINTF
     printf("i0 = %d, nrows = %d, v = %d, AA.extent(0) = %ld;\n", i0, nrows, v, AA.extent(0));
@@ -3345,11 +3311,7 @@ struct ExtractAndFactorizeTridiags {
     // We can simply pull the diagonal entry from A into d_inv
     btdm_scalar_scratch_type_3d_view WW1(member.team_scratch(ScratchLevel), half_vector_length, blocksize, blocksize);
     btdm_scalar_scratch_type_3d_view WW2(member.team_scratch(ScratchLevel), half_vector_length, blocksize, blocksize);
-#if KOKKOS_VERSION >= 40799
-    const auto one = KokkosKernels::ArithTraits<btdm_magnitude_type>::one();
-#else
-    const auto one = Kokkos::ArithTraits<btdm_magnitude_type>::one();
-#endif
+    const auto one                 = KokkosKernels::ArithTraits<btdm_magnitude_type>::one();
     const local_ordinal_type nrows = lclrow.extent(0);
     Kokkos::parallel_for(Kokkos::ThreadVectorRange(member, half_vector_length),
                          [&](const local_ordinal_type &v) {
@@ -3515,11 +3477,7 @@ struct ExtractAndFactorizeTridiags {
 
     member.team_barrier();
 
-#if KOKKOS_VERSION >= 40799
     const auto one = KokkosKernels::ArithTraits<btdm_magnitude_type>::one();
-#else
-    const auto one = Kokkos::ArithTraits<btdm_magnitude_type>::one();
-#endif
 
     const size_type c_kps1 = pack_td_ptr(partidx, local_subpartidx) + 1;
     const size_type c_kps2 = pack_td_ptr(partidx, local_subpartidx + 1) - 2;
@@ -3649,16 +3607,8 @@ struct ExtractAndFactorizeTridiags {
 #ifdef IFPACK2_BLOCKTRIDICONTAINER_USE_PRINTF
         printf("Start ExtractBCDTag\n");
 #endif
-#if KOKKOS_VERSION >= 40799
         Kokkos::deep_copy(e_scalar_values, KokkosKernels::ArithTraits<btdm_magnitude_type>::zero());
-#else
-        Kokkos::deep_copy(e_scalar_values, Kokkos::ArithTraits<btdm_magnitude_type>::zero());
-#endif
-#if KOKKOS_VERSION >= 40799
         Kokkos::deep_copy(scalar_values_schur, KokkosKernels::ArithTraits<btdm_magnitude_type>::zero());
-#else
-        Kokkos::deep_copy(scalar_values_schur, Kokkos::ArithTraits<btdm_magnitude_type>::zero());
-#endif
 
         write5DMultiVectorValuesToFile(part2packrowidx0_sub.extent(0), e_scalar_values, "e_scalar_values_before_extract.mm");
 
@@ -4269,11 +4219,7 @@ struct SolveTridiags {
                                        y += df * yd;
 
                                        {  // if (compute_diff) {
-#if KOKKOS_VERSION >= 40799
                                          const auto yd_abs = KokkosKernels::ArithTraits<impl_scalar_type>::abs(yd);
-#else
-                        const auto yd_abs = Kokkos::ArithTraits<impl_scalar_type>::abs(yd);
-#endif
                                          z_partial_sum += yd_abs * yd_abs;
                                        }
                                      }
@@ -4297,11 +4243,7 @@ struct SolveTridiags {
                                        y += df * yd;
 
                                        {  // if (compute_diff) {
-#if KOKKOS_VERSION >= 40799
                                          const auto yd_abs = KokkosKernels::ArithTraits<impl_scalar_type>::abs(yd);
-#else
-                        const auto yd_abs = Kokkos::ArithTraits<impl_scalar_type>::abs(yd);
-#endif
                                          z_partial_sum += yd_abs * yd_abs;
                                        }
                                      }
@@ -4337,16 +4279,8 @@ struct SolveTridiags {
     auto X = X_internal_vector_values.data();
 
     // constant
-#if KOKKOS_VERSION >= 40799
-    const auto one = KokkosKernels::ArithTraits<btdm_magnitude_type>::one();
-#else
-    const auto one  = Kokkos::ArithTraits<btdm_magnitude_type>::one();
-#endif
-#if KOKKOS_VERSION >= 40799
+    const auto one  = KokkosKernels::ArithTraits<btdm_magnitude_type>::one();
     const auto zero = KokkosKernels::ArithTraits<btdm_magnitude_type>::zero();
-#else
-    const auto zero = Kokkos::ArithTraits<btdm_magnitude_type>::zero();
-#endif
     // const local_ordinal_type num_vectors = X_scalar_values.extent(2);
 
     // const local_ordinal_type blocksize = D_scalar_values.extent(1);
@@ -4456,16 +4390,8 @@ struct SolveTridiags {
     typedef typename default_mode_and_algo_type::multi_vector_algo_type default_algo_type;
 
     // constant
-#if KOKKOS_VERSION >= 40799
-    const auto one = KokkosKernels::ArithTraits<btdm_magnitude_type>::one();
-#else
-    const auto one  = Kokkos::ArithTraits<btdm_magnitude_type>::one();
-#endif
-#if KOKKOS_VERSION >= 40799
+    const auto one  = KokkosKernels::ArithTraits<btdm_magnitude_type>::one();
     const auto zero = KokkosKernels::ArithTraits<btdm_magnitude_type>::zero();
-#else
-    const auto zero = Kokkos::ArithTraits<btdm_magnitude_type>::zero();
-#endif
 
     // subview pattern
     auto A  = Kokkos::subview(D_internal_vector_values, i0, Kokkos::ALL(), Kokkos::ALL(), v);
@@ -4645,11 +4571,7 @@ struct SolveTridiags {
     (void)i0_schur;
     (void)i0_offset;
 
-#if KOKKOS_VERSION >= 40799
     const auto one = KokkosKernels::ArithTraits<btdm_magnitude_type>::one();
-#else
-    const auto one  = Kokkos::ArithTraits<btdm_magnitude_type>::one();
-#endif
 
     const size_type c_kps2 = local_subpartidx > 0 ? pack_td_ptr(partidx, local_subpartidx) - 2 : 0;
     const size_type c_kps1 = pack_td_ptr(partidx, local_subpartidx + 1) + 1;
@@ -4779,11 +4701,7 @@ struct SolveTridiags {
 
     // Compute v_2 = v_2 - C v_1
 
-#if KOKKOS_VERSION >= 40799
     const auto one = KokkosKernels::ArithTraits<btdm_magnitude_type>::one();
-#else
-    const auto one  = Kokkos::ArithTraits<btdm_magnitude_type>::one();
-#endif
 
     typedef SolveTridiagsDefaultModeAndAlgo<typename execution_space::memory_space> default_mode_and_algo_type;
 
@@ -5053,13 +4971,9 @@ int applyInverseJacobi(  // importer
                               "Maximum number of sweeps must be >= 1.");
 
   // const parameters
-  const bool is_seq_method_requested  = !tpetra_importer.is_null();
-  const bool is_async_importer_active = !async_importer.is_null();
-#if KOKKOS_VERSION >= 40799
-  const bool is_norm_manager_active = tol > KokkosKernels::ArithTraits<magnitude_type>::zero();
-#else
-  const bool is_norm_manager_active = tol > Kokkos::ArithTraits<magnitude_type>::zero();
-#endif
+  const bool is_seq_method_requested     = !tpetra_importer.is_null();
+  const bool is_async_importer_active    = !async_importer.is_null();
+  const bool is_norm_manager_active      = tol > KokkosKernels::ArithTraits<magnitude_type>::zero();
   const magnitude_type tolerance         = tol * tol;
   const local_ordinal_type blocksize     = btdm.values.extent(1);
   const local_ordinal_type num_vectors   = Y.getNumVectors();
@@ -5202,10 +5116,11 @@ int applyInverseJacobi(  // importer
   return sweep;
 }
 
-// Implementation of fused block Jacobi for a specific block size,
-// or (if B == 0) for a general block size.
-template <typename MatrixType, int B>
-int applyFusedBlockJacobi_Impl(
+///
+/// top level apply interface (fused block Jacobi)
+///
+template <typename MatrixType>
+int applyFusedBlockJacobi(
     const Teuchos::RCP<const typename BlockHelperDetails::ImplType<MatrixType>::tpetra_import_type> &tpetra_importer,
     const Teuchos::RCP<AsyncableImport<MatrixType>> &async_importer,
     const bool overlap_communication_and_computation,
@@ -5232,6 +5147,8 @@ int applyFusedBlockJacobi_Impl(
   using impl_scalar_type_1d_view        = typename impl_type::impl_scalar_type_1d_view;
   using impl_scalar_type_2d_view_tpetra = typename impl_type::impl_scalar_type_2d_view_tpetra;
 
+  IFPACK2_BLOCKHELPER_TIMER("BlockTriDi::ApplyFusedBlockJacobi", ApplyFusedBlockJacobi);
+
   // the tpetra importer and async importer can't both be active
   TEUCHOS_TEST_FOR_EXCEPT_MSG(!tpetra_importer.is_null() && !async_importer.is_null(),
                               "Neither Tpetra importer nor Async importer is null.");
@@ -5240,12 +5157,8 @@ int applyFusedBlockJacobi_Impl(
                               "Maximum number of sweeps must be >= 1.");
 
   // const parameters
-  const bool is_async_importer_active = !async_importer.is_null();
-#if KOKKOS_VERSION >= 40799
-  const bool is_norm_manager_active = tol > KokkosKernels::ArithTraits<magnitude_type>::zero();
-#else
-  const bool is_norm_manager_active = tol > Kokkos::ArithTraits<magnitude_type>::zero();
-#endif
+  const bool is_async_importer_active    = !async_importer.is_null();
+  const bool is_norm_manager_active      = tol > KokkosKernels::ArithTraits<magnitude_type>::zero();
   const magnitude_type tolerance         = tol * tol;
   const local_ordinal_type blocksize     = btdm.d_inv.extent(1);
   const local_ordinal_type num_vectors   = Y.getNumVectors();
@@ -5283,13 +5196,8 @@ int applyFusedBlockJacobi_Impl(
   if (W.extent(0) != size_t(num_blockrows))
     W = impl_scalar_type_1d_view(do_not_initialize_tag("W"), num_blockrows);
 
-  // Create the required functors upfront (this is inexpensive - all shallow copies)
-  BlockHelperDetails::ComputeResidualAndSolve_SolveOnly<MatrixType, B>
-      functor_solve_only(amd, btdm.d_inv, W, blocksize, damping_factor);
-  BlockHelperDetails::ComputeResidualAndSolve_1Pass<MatrixType, B>
-      functor_1pass(amd, btdm.d_inv, W, blocksize, damping_factor);
-  BlockHelperDetails::ComputeResidualAndSolve_2Pass<MatrixType, B>
-      functor_2pass(amd, btdm.d_inv, W, blocksize, damping_factor);
+  BlockHelperDetails::ComputeResidualAndSolve<MatrixType>
+      residualAndSolve(amd, btdm.d_inv, W, blocksize, damping_factor);
 
   // norm manager workspace resize
   if (is_norm_manager_active)
@@ -5306,7 +5214,7 @@ int applyFusedBlockJacobi_Impl(
   for (; sweep < max_num_sweeps; ++sweep) {
     if (is_y_zero) {
       // If y is initially zero, then we are just computing y := damping_factor * Dinv * x
-      functor_solve_only.run(XX, y_buffers[1 - current_y]);
+      residualAndSolve.run_y_zero(XX, y_buffers[1 - current_y]);
     } else {
       // real use case does not use overlap comp and comm
       if (overlap_communication_and_computation || !is_async_importer_active) {
@@ -5314,11 +5222,11 @@ int applyFusedBlockJacobi_Impl(
         if (two_pass_residual) {
           // Pass 1 computes owned residual and stores into new y buffer,
           // but doesn't apply Dinv or produce a norm yet
-          functor_2pass.run_pass1(XX, y_buffers[current_y], y_buffers[1 - current_y]);
+          residualAndSolve.run_pass1_of_2(XX, y_buffers[current_y], y_buffers[1 - current_y]);
         } else {
           // This case happens if running with single rank.
           // There are no remote columns, so residual and solve can happen in one step.
-          functor_1pass.run(XX, y_buffers[current_y], remote_multivector, y_buffers[1 - current_y]);
+          residualAndSolve.run_single_pass(XX, y_buffers[current_y], remote_multivector, y_buffers[1 - current_y]);
         }
         if (is_norm_manager_active && norm_manager.checkDone(sweep, tolerance)) {
           if (is_async_importer_active) async_importer->cancel();
@@ -5327,14 +5235,14 @@ int applyFusedBlockJacobi_Impl(
         if (is_async_importer_active) {
           async_importer->syncRecv();
           // Stage 2 finishes computing the residual, then applies Dinv and computes norm.
-          functor_2pass.run_pass2(y_buffers[current_y], remote_multivector, y_buffers[1 - current_y]);
+          residualAndSolve.run_pass2_of_2(y_buffers[current_y], remote_multivector, y_buffers[1 - current_y]);
         }
       } else {
         if (is_async_importer_active)
           async_importer->syncExchange(y_buffers[current_y]);
         if (is_norm_manager_active && norm_manager.checkDone(sweep, tolerance)) break;
         // Full residual, Dinv apply, and norm in one kernel
-        functor_1pass.run(XX, y_buffers[current_y], remote_multivector, y_buffers[1 - current_y]);
+        residualAndSolve.run_single_pass(XX, y_buffers[current_y], remote_multivector, y_buffers[1 - current_y]);
       }
     }
 
@@ -5359,58 +5267,6 @@ int applyFusedBlockJacobi_Impl(
 
   // sqrt the norms for the caller's use.
   if (is_norm_manager_active) norm_manager.finalize();
-  return sweep;
-}
-
-///
-/// top level apply interface (fused block Jacobi)
-///
-template <typename MatrixType>
-int applyFusedBlockJacobi(
-    const Teuchos::RCP<const typename BlockHelperDetails::ImplType<MatrixType>::tpetra_import_type> &tpetra_importer,
-    const Teuchos::RCP<AsyncableImport<MatrixType>> &async_importer,
-    const bool overlap_communication_and_computation,
-    // tpetra interface
-    const typename BlockHelperDetails::ImplType<MatrixType>::tpetra_multivector_type &X,   // tpetra interface
-    /* */ typename BlockHelperDetails::ImplType<MatrixType>::tpetra_multivector_type &Y,   // tpetra interface
-    /* */ typename BlockHelperDetails::ImplType<MatrixType>::impl_scalar_type_1d_view &W,  // temporary tpetra interface (diff)
-    // local object interface
-    const BlockHelperDetails::PartInterface<MatrixType> &interf,                              // mesh interface
-    const BlockTridiags<MatrixType> &btdm,                                                    // packed block tridiagonal matrices
-    const BlockHelperDetails::AmD<MatrixType> &amd,                                           // R = A - D
-    /* */ typename BlockHelperDetails::ImplType<MatrixType>::impl_scalar_type_1d_view &work,  // workspace
-    /* */ BlockHelperDetails::NormManager<MatrixType> &norm_manager,
-    // preconditioner parameters
-    const typename BlockHelperDetails::ImplType<MatrixType>::impl_scalar_type &damping_factor,
-    /* */ bool is_y_zero,
-    const int max_num_sweeps,
-    const typename BlockHelperDetails::ImplType<MatrixType>::magnitude_type tol,
-    const int check_tol_every) {
-  IFPACK2_BLOCKHELPER_TIMER("BlockTriDi::ApplyFusedBlockJacobi", ApplyFusedBlockJacobi);
-  int blocksize = btdm.d_inv.extent(1);
-  int sweep     = 0;
-#define BLOCKTRIDICONTAINER_APPLY_FUSED_JACOBI(B)                               \
-  {                                                                             \
-    sweep = applyFusedBlockJacobi_Impl<MatrixType, B>(                          \
-        tpetra_importer, async_importer, overlap_communication_and_computation, \
-        X, Y, W, interf, btdm, amd, work,                                       \
-        norm_manager, damping_factor, is_y_zero,                                \
-        max_num_sweeps, tol, check_tol_every);                                  \
-  }                                                                             \
-  break
-  switch (blocksize) {
-    case 3: BLOCKTRIDICONTAINER_APPLY_FUSED_JACOBI(3);
-    case 5: BLOCKTRIDICONTAINER_APPLY_FUSED_JACOBI(5);
-    case 7: BLOCKTRIDICONTAINER_APPLY_FUSED_JACOBI(7);
-    case 9: BLOCKTRIDICONTAINER_APPLY_FUSED_JACOBI(9);
-    case 10: BLOCKTRIDICONTAINER_APPLY_FUSED_JACOBI(10);
-    case 11: BLOCKTRIDICONTAINER_APPLY_FUSED_JACOBI(11);
-    case 16: BLOCKTRIDICONTAINER_APPLY_FUSED_JACOBI(16);
-    case 17: BLOCKTRIDICONTAINER_APPLY_FUSED_JACOBI(17);
-    case 18: BLOCKTRIDICONTAINER_APPLY_FUSED_JACOBI(18);
-    default: BLOCKTRIDICONTAINER_APPLY_FUSED_JACOBI(0);
-  }
-#undef BLOCKTRIDICONTAINER_APPLY_FUSED_JACOBI
 
   return sweep;
 }

@@ -31,8 +31,10 @@ TachoSolver<Matrix,Vector>::TachoSolver(
   data_.variant   = 2;      // solver variant
   data_.streams   = 1;      // # of streams
   data_.dofs_per_node = 1;  // DoFs / node
-  data_.pivot_pert = false; // Diagonal pertubation
+  data_.pivot_pert = false; // Pertub small pivot
+  data_.diag_shift = false; // Shift diagonal
   data_.verbose    = false; // verbose
+  data_.small_problem_threshold_size = 1024;
 }
 
 
@@ -75,6 +77,9 @@ TachoSolver<Matrix,Vector>::symbolicFactorization_impl()
       this->matrixA_->returnColInd_kokkos_view(host_cols_view_);
     }
 
+    if (data_.diag_shift) {
+      data_.solver.shiftDiagonal();
+    }
     data_.solver.setSolutionMethod(data_.method);
     data_.solver.setLevelSetOptionAlgorithmVariant(data_.variant);
     data_.solver.setSmallProblemThresholdsize(data_.small_problem_threshold_size);
@@ -221,7 +226,9 @@ TachoSolver<Matrix,Vector>::setParameters_impl(const Teuchos::RCP<Teuchos::Param
 
   // factorization type
   auto method_name = parameterList->get<std::string> ("method", "chol");
-  if (method_name == "chol")
+  if (method_name == "ldl-nopiv")
+    data_.method = 0;
+  else if (method_name == "chol")
     data_.method = 1;
   else if (method_name == "ldl")
     data_.method = 2;
@@ -242,6 +249,7 @@ TachoSolver<Matrix,Vector>::setParameters_impl(const Teuchos::RCP<Teuchos::Param
   data_.dofs_per_node = parameterList->get<int> ("dofs-per-node", 1);
   // Perturb tiny pivots
   data_.pivot_pert = parameterList->get<bool> ("perturb-pivot", false);
+  data_.diag_shift = parameterList->get<bool> ("shift-diag", false);
   // TODO: Confirm param options
   // data_.num_kokkos_threads = parameterList->get<int>("kokkos-threads", 1);
   // data_.max_num_superblocks = parameterList->get<int>("max-num-superblocks", 4);
@@ -264,6 +272,7 @@ TachoSolver<Matrix,Vector>::getValidParameters_impl() const
     pl->set("num-streams", 1, "Number of GPU streams");
     pl->set("dofs-per-node", 1, "DoFs per node");
     pl->set("perturb-pivot", false, "Perturb tiny pivots");
+    pl->set("shift-diag", false, "Shift diagonal entries");
 
     // TODO: Confirm param options
     // pl->set("kokkos-threads", 1, "Number of threads");
@@ -347,6 +356,28 @@ TachoSolver<Matrix,Vector>::loadA_impl(EPhase current_phase)
   }
 
   return true;
+}
+
+
+template <class Matrix, class Vector>
+void
+TachoSolver<Matrix,Vector>::describe_impl(Teuchos::FancyOStream &out,
+                                          const Teuchos::EVerbosityLevel verbLevel) const
+{
+  out << " Tacho current parameters:" << std::endl;
+  out << " > method  = " << data_.method;
+  if (data_.method == 0) out << " (ldl-nopiv)" << std::endl;
+  if (data_.method == 1) out << " (chol)" << std::endl;
+  if (data_.method == 2) out << " (ldl)" << std::endl;
+  if (data_.method == 3) out << " (lu)" << std::endl;
+  out << " > variant = " << data_.variant << std::endl;
+  out << " > verbose = " << data_.verbose << std::endl;
+  out << " > num-streams   = " << data_.streams << std::endl;
+  out << " > dofs-per-node = " << data_.dofs_per_node << std::endl;
+  out << " > perturb-pivo  = " << (data_.pivot_pert ? "YES" : "NO") << std::endl;
+  out << " > shift-diag    = " << (data_.diag_shift ? "YES" : "NO") << std::endl;
+  out << " > small problem threshold size = " << data_.small_problem_threshold_size << std::endl;
+  out << std::endl;
 }
 
 
