@@ -4051,7 +4051,7 @@ CrsGraph<LocalOrdinal, GlobalOrdinal, Node>::
                                           "indices from global to local, we encountered "
               << lclNumErrs
               << " ind" << (pluralNumErrs ? "ices" : "ex")
-              << " that do" << (pluralNumErrs ? "es" : "")
+              << " that do" << (pluralNumErrs ? "" : "es")
               << " not live in the column Map on this process." << endl;
     }
 
