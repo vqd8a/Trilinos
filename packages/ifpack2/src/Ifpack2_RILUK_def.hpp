@@ -572,10 +572,19 @@ void RILUK<MatrixType>::initialize() {
             perm_rcb_              = perm_view_t(Kokkos::view_alloc(Kokkos::WithoutInitializing, "perm_rcb_"), A_coordinates_lcl.extent(0));
             coors_rcb_             = coors_view_t(Kokkos::view_alloc(Kokkos::WithoutInitializing, "coors_rcb_"), A_coordinates_lcl.extent(0), A_coordinates_lcl.extent(1));
             Kokkos::deep_copy(coors_rcb_, A_coordinates_lcl);
+#if KOKKOS_VERSION >= 50100
+            KokkosSparse::Experimental::kk_extract_diagonal_blocks_crsmatrix_with_rcb_sequential(lclMtx, coors_rcb_,
+                                                                                                 A_local_diagblks_v_, perm_rcb_);
+#else
             KokkosSparse::Impl::kk_extract_diagonal_blocks_crsmatrix_with_rcb_sequential(lclMtx, coors_rcb_,
                                                                                          A_local_diagblks_v_, perm_rcb_);
+#endif
           } else {
+#if KOKKOS_VERSION >= 50100
+            KokkosSparse::Experimental::kk_extract_diagonal_blocks_crsmatrix_sequential(lclMtx, A_local_diagblks_v_);
+#else
             KokkosSparse::Impl::kk_extract_diagonal_blocks_crsmatrix_sequential(lclMtx, A_local_diagblks_v_);
+#endif
           }
         } else {
           perm_v_ = KokkosSparse::Impl::kk_extract_diagonal_blocks_crsmatrix_sequential(lclMtx, A_local_diagblks_v_, true);
