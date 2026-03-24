@@ -572,13 +572,26 @@ void RILUK<MatrixType>::initialize() {
             perm_rcb_              = perm_view_t(Kokkos::view_alloc(Kokkos::WithoutInitializing, "perm_rcb_"), A_coordinates_lcl.extent(0));
             coors_rcb_             = coors_view_t(Kokkos::view_alloc(Kokkos::WithoutInitializing, "coors_rcb_"), A_coordinates_lcl.extent(0), A_coordinates_lcl.extent(1));
             Kokkos::deep_copy(coors_rcb_, A_coordinates_lcl);
+#if KOKKOS_VERSION >= 50100
+            KokkosSparse::Experimental::kk_extract_diagonal_blocks_crsmatrix_with_rcb_sequential(lclMtx, coors_rcb_,
+                                                                                                 A_local_diagblks_v_, perm_rcb_);
+#else
             KokkosSparse::Impl::kk_extract_diagonal_blocks_crsmatrix_with_rcb_sequential(lclMtx, coors_rcb_,
                                                                                          A_local_diagblks_v_, perm_rcb_);
+#endif
           } else {
+#if KOKKOS_VERSION >= 50100
+            KokkosSparse::Experimental::kk_extract_diagonal_blocks_crsmatrix_sequential(lclMtx, A_local_diagblks_v_);
+#else
             KokkosSparse::Impl::kk_extract_diagonal_blocks_crsmatrix_sequential(lclMtx, A_local_diagblks_v_);
+#endif
           }
         } else {
+#if KOKKOS_VERSION >= 50100
+          perm_v_ = KokkosSparse::Experimental::kk_extract_diagonal_blocks_crsmatrix_sequential(lclMtx, A_local_diagblks_v_, true);
+#else
           perm_v_ = KokkosSparse::Impl::kk_extract_diagonal_blocks_crsmatrix_sequential(lclMtx, A_local_diagblks_v_, true);
+#endif
           reverse_perm_v_.resize(perm_v_.size());
           for (size_t istream = 0; istream < perm_v_.size(); ++istream) {
             using perm_type        = typename lno_nonzero_view_t::non_const_type;
@@ -1138,12 +1151,21 @@ void RILUK<MatrixType>::compute() {
       // If streams are on, we potentially have to refresh A_local_diagblks_values_v_
       auto lclMtx = A_local_crs_->getLocalMatrixDevice();
       if (!hasStreamsWithRCB_) {
+#if KOKKOS_VERSION >= 50100
+        KokkosSparse::Experimental::kk_extract_diagonal_blocks_crsmatrix_sequential(lclMtx, A_local_diagblks_v_, hasStreamReordered_);
+#else
         KokkosSparse::Impl::kk_extract_diagonal_blocks_crsmatrix_sequential(lclMtx, A_local_diagblks_v_, hasStreamReordered_);
+#endif
       } else {
         auto A_coordinates_lcl = A_coordinates_->getLocalViewDevice(Tpetra::Access::ReadOnly);
         Kokkos::deep_copy(coors_rcb_, A_coordinates_lcl);
+#if KOKKOS_VERSION >= 50100
+        KokkosSparse::Experimental::kk_extract_diagonal_blocks_crsmatrix_with_rcb_sequential(lclMtx, coors_rcb_,
+                                                                                             A_local_diagblks_v_, perm_rcb_);
+#else
         KokkosSparse::Impl::kk_extract_diagonal_blocks_crsmatrix_with_rcb_sequential(lclMtx, coors_rcb_,
                                                                                      A_local_diagblks_v_, perm_rcb_);
+#endif
       }
       for (int i = 0; i < num_streams_; i++) {
         A_local_diagblks_values_v_[i] = A_local_diagblks_v_[i].values;
