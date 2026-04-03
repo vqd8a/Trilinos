@@ -491,6 +491,11 @@ void RILUK<MatrixType>::initialize() {
                                                                                   "Tpetra::CrsMatrix, please call fillComplete on it (with the domain and "
                                                                                   "range Maps, if appropriate) before calling this method.");
 
+  // VINH TEST
+  int myRank, nRanks;
+  MPI_Comm_rank (MPI_COMM_WORLD, &myRank);
+  MPI_Comm_size (MPI_COMM_WORLD, &nRanks);
+  // END VINH TEST
   Teuchos::Time timer("RILUK::initialize");
   double startTime = timer.wallTime();
   {  // Start timing
@@ -520,6 +525,12 @@ void RILUK<MatrixType>::initialize() {
     }
 
     A_local_ = makeLocalFilter(A_);
+    // VINH TEST
+    fprintf(stderr, "RILUK<MatrixType>::initialize (), rank %d, A_ global (%d x %d, %d), local (%d x %d, %d), A_local_ global (%d x %d, %d), local (%d x %d, %d)\n",
+            myRank, A_->getGlobalNumRows(), A_->getGlobalNumCols(), A_->getGlobalNumEntries(), A_->getLocalNumRows(), A_->getLocalNumCols(), A_->getLocalNumEntries(),
+            A_local_->getGlobalNumRows(), A_local_->getGlobalNumCols(), A_local_->getGlobalNumEntries(),
+            A_local_->getLocalNumRows(), A_local_->getLocalNumCols(), A_local_->getLocalNumEntries());
+    // END VINH TEST
 
     TEUCHOS_TEST_FOR_EXCEPTION(
         A_local_.is_null(), std::logic_error,
@@ -557,6 +568,11 @@ void RILUK<MatrixType>::initialize() {
         A_local_crs_ = rcp_const_cast<const crs_matrix_type>(A_local_crs_nc_);
       }
       if (!isKokkosKernelsStream_) {
+        {// VINH TEST
+          //auto lclMtx = A_local_crs_->getLocalMatrixDevice();      
+          //std::string fnA_mtx = "A_r_" + std::to_string( myRank ) + ".mtx";
+          //KokkosSparse::Impl::write_kokkos_crst_matrix<local_matrix_device_type>(lclMtx, fnA_mtx.c_str());
+        }// VINH TEST
         Graph_ = rcp(new Ifpack2::IlukGraph<crs_graph_type, kk_handle_type>(A_local_crs_->getCrsGraph(),
                                                                             LevelOfFill_, 0, Overalloc_));
       } else {
@@ -633,6 +649,9 @@ void RILUK<MatrixType>::initialize() {
       }
     }
 
+    // VINH TEST
+    //fprintf(stderr, "RILUK<MatrixType>::initialize (), rank %d, BEFORE create_spiluk_handle and spiluk_symbolic, LevelOfFill_ %d\n", myRank, LevelOfFill_);
+    // END VINH TEST
     if (this->isKokkosKernelsSpiluk_) {
       if (!isKokkosKernelsStream_) {
         this->KernelHandle_ = Teuchos::rcp(new kk_handle_type());
@@ -655,6 +674,9 @@ void RILUK<MatrixType>::initialize() {
     } else {
       Graph_->initialize();
     }
+    // VINH TEST
+    //fprintf(stderr, "RILUK<MatrixType>::initialize (), rank %d, AFTER create_spiluk_handle and spiluk_symbolic\n", myRank);
+    // END VINH TEST
 
     allocate_L_and_U();
     checkOrderingConsistency(*A_local_);
