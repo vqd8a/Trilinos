@@ -75,6 +75,8 @@ class OpenMPInternal {
 
   void initialize(int thread_cound);
 
+  void fence(const std::string&);
+
   void finalize();
 
   void clear_thread_data();
@@ -97,8 +99,6 @@ class OpenMPInternal {
   int get_level() const { return m_level; }
 
   bool is_initialized() const { return m_initialized; }
-
-  bool verify_is_initialized(const char* const label) const;
 
   void print_configuration(std::ostream& s) const;
 
