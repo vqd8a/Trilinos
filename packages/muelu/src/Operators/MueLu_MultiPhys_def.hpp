@@ -118,6 +118,12 @@ void MultiPhys<Scalar, LocalOrdinal, GlobalOrdinal, Node>::compute(bool reuse) {
       }
     }
 
+    if (arrayOfNullspaces_ != Teuchos::null) {
+      if (arrayOfNullspaces_[iii] != Teuchos::null) {
+        arrayOfParamLists_[iii]->sublist("user data").set("Nullspace", arrayOfNullspaces_[iii]);
+      }
+    }
+
     bool wantToRepartition = false;
     if (paramListMultiphysics_->isParameter("repartition: enable"))
       wantToRepartition = paramListMultiphysics_->get<bool>("repartition: enable");
@@ -127,7 +133,7 @@ void MultiPhys<Scalar, LocalOrdinal, GlobalOrdinal, Node>::compute(bool reuse) {
     arrayOfParamLists_[iii]->set("repartition: explicit via new copy rebalance P and R", true);
 
     if (paramListMultiphysics_->isParameter("repartition: use subcommunicators"))
-      arrayOfParamLists_[iii]->set("repartition: use subcommunicators", paramListMultiphysics_->isParameter("repartition: use subcommunicators"));
+      arrayOfParamLists_[iii]->set("repartition: use subcommunicators", paramListMultiphysics_->get<bool>("repartition: use subcommunicators"));
     else
       arrayOfParamLists_[iii]->set("repartition: use subcommunicators", true);
   }

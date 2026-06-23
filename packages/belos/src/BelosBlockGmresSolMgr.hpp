@@ -202,7 +202,7 @@ public:
   //@{
 
   //! Set the linear problem that needs to be solved.
-  void setProblem( const Teuchos::RCP<LinearProblem<ScalarType,MV,OP> > &problem ) override { problem_ = problem; isSTSet_ = false; }
+  void setProblem( const Teuchos::RCP<LinearProblem<ScalarType,MV,OP> > &problem ) override { problem_ = problem; isSTSet_ = false; needsIterRebuild_ = true; }
 
   //! Set the parameters the solver manager should use to solve the linear problem.
   void setParameters( const Teuchos::RCP<Teuchos::ParameterList> &params ) override;
@@ -296,6 +296,7 @@ private:
   static constexpr bool adaptiveBlockSize_default_ = true;
   static constexpr bool showMaxResNormOnly_default_ = false;
   static constexpr bool flexibleGmres_default_ = false;
+  static constexpr bool keepHessenberg_default_ = false;
   static constexpr bool expResTest_default_ = false;
   static constexpr int blockSize_default_ = 1;
   static constexpr int numBlocks_default_ = 300;
@@ -311,7 +312,7 @@ private:
   MagnitudeType convtol_, orthoKappa_, achievedTol_;
   int maxRestarts_, maxIters_, numIters_;
   int blockSize_, numBlocks_, verbosity_, outputStyle_, outputFreq_;
-  bool adaptiveBlockSize_, showMaxResNormOnly_, isFlexible_, expResTest_;
+  bool adaptiveBlockSize_, showMaxResNormOnly_, isFlexible_, keepHessenberg_, expResTest_;
   std::string orthoType_;
   std::string impResScale_, expResScale_;
 
@@ -319,8 +320,12 @@ private:
   std::string label_;
   Teuchos::RCP<Teuchos::Time> timerSolve_;
 
+  // Cached iterator (reused across solve() calls to avoid reallocating Krylov subspace).
+  Teuchos::RCP<GmresIteration<ScalarType,MV,OP> > block_gmres_iter_;
+
   // Internal state variables.
   bool isSet_, isSTSet_;
+  bool needsIterRebuild_;
   bool loaDetected_;
 };
 
@@ -343,6 +348,7 @@ BlockGmresSolMgr<ScalarType,MV,OP>::BlockGmresSolMgr() :
   adaptiveBlockSize_(adaptiveBlockSize_default_),
   showMaxResNormOnly_(showMaxResNormOnly_default_),
   isFlexible_(flexibleGmres_default_),
+  keepHessenberg_(keepHessenberg_default_),
   expResTest_(expResTest_default_),
   orthoType_(orthoType_default_),
   impResScale_(impResScale_default_),
@@ -350,6 +356,7 @@ BlockGmresSolMgr<ScalarType,MV,OP>::BlockGmresSolMgr() :
   label_(label_default_),
   isSet_(false),
   isSTSet_(false),
+  needsIterRebuild_(true),
   loaDetected_(false)
 {}
 
@@ -375,6 +382,7 @@ BlockGmresSolMgr (const Teuchos::RCP<LinearProblem<ScalarType,MV,OP> > &problem,
   adaptiveBlockSize_(adaptiveBlockSize_default_),
   showMaxResNormOnly_(showMaxResNormOnly_default_),
   isFlexible_(flexibleGmres_default_),
+  keepHessenberg_(keepHessenberg_default_),
   expResTest_(expResTest_default_),
   orthoType_(orthoType_default_),
   impResScale_(impResScale_default_),
@@ -382,6 +390,7 @@ BlockGmresSolMgr (const Teuchos::RCP<LinearProblem<ScalarType,MV,OP> > &problem,
   label_(label_default_),
   isSet_(false),
   isSTSet_(false),
+  needsIterRebuild_(true),
   loaDetected_(false)
 {
 
@@ -441,6 +450,10 @@ BlockGmresSolMgr<ScalarType,MV,OP>::getValidParameters() const
     pl->set("Flexible Gmres", static_cast<bool>(flexibleGmres_default_),
       "Whether the solver manager should use the flexible variant\n"
       "of GMRES.");
+    pl->set("Keep Hessenberg", static_cast<bool>(keepHessenberg_default_),
+      "Whether the raw upper Hessenberg matrix should be stored separately\n"
+      "from the QR-factored least squares system. Useful for harmonic Ritz\n"
+      "pair computation from the GMRES iteration state.");
     pl->set("Explicit Residual Test", static_cast<bool>(expResTest_default_),
       "Whether the explicitly computed residual should be used in the convergence test.");
     pl->set("Implicit Residual Scaling", static_cast<const char *>(impResScale_default_),
@@ -534,6 +547,12 @@ void BlockGmresSolMgr<ScalarType,MV,OP>::setParameters( const Teuchos::RCP<Teuch
         ortho_->setLabel( label_ );
       }
     }
+  }
+
+  // Determine whether the raw Hessenberg should be stored separately from R.
+  if (params->isParameter("Keep Hessenberg")) {
+    keepHessenberg_ = Teuchos::getParameter<bool>(*params,"Keep Hessenberg");
+    params_->set("Keep Hessenberg", keepHessenberg_);
   }
 
   // Determine whether this solver should be "flexible".
@@ -739,6 +758,8 @@ void BlockGmresSolMgr<ScalarType,MV,OP>::setParameters( const Teuchos::RCP<Teuch
   }
 
   // Inform the solver manager that the current parameters were set.
+  // The cached iterator must be rebuilt since printer_, outputTest_, and ortho_ may have changed.
+  needsIterRebuild_ = true;
   isSet_ = true;
 }
 
@@ -903,6 +924,7 @@ ReturnType BlockGmresSolMgr<ScalarType,MV,OP>::solve() {
   // Parameter list
   Teuchos::ParameterList plist;
   plist.set("Block Size",blockSize_);
+  plist.set("Keep Hessenberg",keepHessenberg_);
 
   ptrdiff_t dim = MVT::GetGlobalLength( *(problem_->getRHS()) );
   if (blockSize_*static_cast<ptrdiff_t>(numBlocks_) > dim) {
@@ -929,12 +951,14 @@ ReturnType BlockGmresSolMgr<ScalarType,MV,OP>::solve() {
   //////////////////////////////////////////////////////////////////////////////////////
   // BlockGmres solver
 
-  Teuchos::RCP<GmresIteration<ScalarType,MV,OP> > block_gmres_iter;
-
-  if (isFlexible_)
-    block_gmres_iter = Teuchos::rcp( new BlockFGmresIter<ScalarType,MV,OP>(problem_,printer_,outputTest_,ortho_,plist) );
-  else
-    block_gmres_iter = Teuchos::rcp( new BlockGmresIter<ScalarType,MV,OP>(problem_,printer_,outputTest_,ortho_,plist) );
+  if (needsIterRebuild_) {
+    if (isFlexible_)
+      block_gmres_iter_ = Teuchos::rcp( new BlockFGmresIter<ScalarType,MV,OP>(problem_,printer_,outputTest_,ortho_,plist) );
+    else
+      block_gmres_iter_ = Teuchos::rcp( new BlockGmresIter<ScalarType,MV,OP>(problem_,printer_,outputTest_,ortho_,plist) );
+    needsIterRebuild_ = false;
+  }
+  Teuchos::RCP<GmresIteration<ScalarType,MV,OP> > &block_gmres_iter = block_gmres_iter_;
 
   // Enter solve() iterations
   {
