@@ -75,6 +75,7 @@ IF (TPL_ENABLE_MPI)
 
   APPEND_SET(SOURCES
     Adelus_distribute.cpp
+    Adelus_mpi_behavior.cpp
     )
 
   #
