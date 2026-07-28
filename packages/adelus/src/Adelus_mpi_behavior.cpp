@@ -16,11 +16,11 @@ namespace Adelus {
 constexpr const std::string_view USE_GPU_AWARE_MPI_ENV_VAR = "ADELUS_USE_GPU_AWARE_MPI";
 
 constexpr bool MpiIsGPUAwareDefault() {
-#ifdef ADELUS_ENABLE_GPU_AWARE_MPI
+#ifdef ADELUS_USE_GPU_AWARE_MPI
     return true;
 #else
     return false;
-#endif  // USE_GPU_AWARE_MPI
+#endif  // ADELUS_USE_GPU_AWARE_MPI
 }
 
 bool probeMpiIsGPUAware() {

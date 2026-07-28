@@ -98,7 +98,7 @@ class AdelusHandle {
     if (my_first_col < nrhs % nprocs_row) my_rhs++;
 
      // Probe GPU-aware MPI environment variable
-     isMpiGPUAware = probeMpiIsGPUAware(); fprintf(stderr, "Probe ADELUS_USE_GPU_AWARE_MPI env var: %d", isMpiGPUAware);
+     isMpiGPUAware = probeMpiIsGPUAware(); fprintf(stderr, "Rank %d, Probe ADELUS_USE_GPU_AWARE_MPI env var: %d\n", myrank, isMpiGPUAware);
   }
 
   ~AdelusHandle(){}

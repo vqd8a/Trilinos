@@ -56,7 +56,7 @@
 #cmakedefine GET_TIMING
 
 /* Whether to enable building with GPU-aware MPI */
-#cmakedefine ADELUS_ENABLE_GPU_AWARE_MPI
+#cmakedefine ADELUS_USE_GPU_AWARE_MPI
 
 /* Whether to use Kokkos::deep_copy for BLAS copy */
 #cmakedefine USE_DEEPCOPY

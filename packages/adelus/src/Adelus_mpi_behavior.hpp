@@ -13,6 +13,7 @@
 #define __ADELUS_MPI_BEHAVIOR_HPP__
 
 #include "Teuchos_EnvVariables.hpp"
+#include "Adelus_defines.h"
 
 namespace Adelus {
 
