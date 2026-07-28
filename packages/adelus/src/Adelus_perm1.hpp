@@ -290,7 +290,7 @@ namespace Adelus {
   #elif defined(KOKKOS_ENABLE_HIP)
     typedef Kokkos::View<value_type**, Kokkos::LayoutLeft, Kokkos::HIPHostPinnedSpace> View2DHostPinnType;//HIPHostPinnedSpace
   #else
-    typedef Kokkos::View<value_type**, Kokkos::LayoutLeft> View2DHostPinnType;//placeholder
+    typedef Kokkos::View<value_type**, Kokkos::LayoutLeft> View2DHostPinnType;//fallback placeholder
   #endif
 
     constexpr bool isOnDeviceSpace =
@@ -354,7 +354,7 @@ namespace Adelus {
   #ifdef GET_TIMING
         t1 = MPI_Wtime();
   #endif
-        h_rhs_temp = View2DHostPinnType( "h_rhs_temp", nrows_matrix, my_rhs_ );
+        h_rhs_temp = View2DHostPinnType( Kokkos::view_alloc(Kokkos::WithoutInitializing, "h_rhs_temp"), nrows_matrix, my_rhs_ );
         Kokkos::deep_copy(h_rhs_temp,rhs_temp);
   #ifdef GET_TIMING
         copyhostpinnedtime = (MPI_Wtime()-t1);
