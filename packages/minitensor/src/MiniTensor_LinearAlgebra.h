@@ -170,6 +170,24 @@ exp_taylor(Tensor<T, N> const & A);
 template <typename T, Index N> Tensor<T, N> exp_pade(Tensor<T, N> const &A);
 
 ///
+/// Exponential map for symmetric tensor
+/// \return \f$ \exp A \f$
+///
+template<typename T, Index N>
+KOKKOS_INLINE_FUNCTION
+Tensor<T, N>
+exp_sym(Tensor<T, N> const & A);
+
+///
+/// Exponential map for symmetric tensor using eigenvalue decomposition
+/// \return \f$ \exp A \f$
+///
+template<typename T, Index N>
+KOKKOS_INLINE_FUNCTION
+Tensor<T, N>
+exp_eig_sym(Tensor<T, N> const & A);
+
+///
 /// Logarithmic map.
 /// \return \f$ \log A \f$
 ///
@@ -196,6 +214,16 @@ template<typename T, Index N>
 KOKKOS_INLINE_FUNCTION
 Tensor<T, N>
 log_gregory(Tensor<T, N> const & A);
+
+///
+/// Logarithmic map by real Schur decomposition and inverse scaling and
+/// squaring on the quasi-triangular factor (Al-Mohy and Higham, 2012).
+/// Dimension 3 or less; used by log() for those dimensions.
+/// \return \f$ \log A \f$
+///
+template<typename T, Index N>
+Tensor<T, N>
+log_schur(Tensor<T, N> const & A);
 
 ///
 /// Logarithmic map for symmetric tensor.
