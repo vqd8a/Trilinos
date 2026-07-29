@@ -32,13 +32,13 @@ void forward(HandleType& ahandle, ZViewType& Z, RHSViewType& RHS)
   using execution_space = typename ZViewType::device_type::execution_space ;
   using memory_space    = typename ZViewType::device_type::memory_space ;
   using ViewMatrixType  = Kokkos::View<value_type**, Kokkos::LayoutLeft, memory_space>;
-  #if defined(KOKKOS_ENABLE_CUDA)
-    using ViewMatrixHostPinnType = Kokkos::View<value_type**, Kokkos::LayoutLeft, Kokkos::CudaHostPinnedSpace>;//CudaHostPinnedSpace
-  #elif defined(KOKKOS_ENABLE_HIP)
-    using ViewMatrixHostPinnType = Kokkos::View<value_type**, Kokkos::LayoutLeft, Kokkos::HIPHostPinnedSpace>;//HIPHostPinnedSpace
-  #else
-    using ViewMatrixHostPinnType = Kokkos::View<value_type**, Kokkos::LayoutLeft>;//fallback placeholder
-  #endif
+#if defined(KOKKOS_ENABLE_CUDA)
+  using ViewMatrixHostPinnType = Kokkos::View<value_type**, Kokkos::LayoutLeft, Kokkos::CudaHostPinnedSpace>;//CudaHostPinnedSpace
+#elif defined(KOKKOS_ENABLE_HIP)
+  using ViewMatrixHostPinnType = Kokkos::View<value_type**, Kokkos::LayoutLeft, Kokkos::HIPHostPinnedSpace>;//HIPHostPinnedSpace
+#else
+  using ViewMatrixHostPinnType = Kokkos::View<value_type**, Kokkos::LayoutLeft>;//fallback placeholder
+#endif
 
   constexpr bool isOnDeviceSpace =
 #if defined( KOKKOS_ENABLE_CUDA )
