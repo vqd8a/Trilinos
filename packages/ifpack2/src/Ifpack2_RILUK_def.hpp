@@ -579,8 +579,8 @@ void RILUK<MatrixType>::initialize() {
 #if KOKKOS_VERSION >= 50100
             local_ordinal_type n_levels = static_cast<local_ordinal_type>(std::log2(static_cast<double>(num_streams_)) + 1);
             partition_sizes_rcb_        = KokkosGraph::Experimental::recursive_coordinate_bisection(coors_rcb_, perm_rcb_, reverse_perm_rcb_, n_levels);
-            KokkosSparse::Experimental::kk_extract_diagonal_blocks_crsmatrix_with_rcb_sequential(lclMtx, perm_rcb_, reverse_perm_rcb_, partition_sizes_rcb_,
-                                                                                                 A_local_diagblks_v_);
+            KokkosSparse::Experimental::kk_extract_diagonal_blocks_crsmatrix_with_rcb(lclMtx, perm_rcb_, reverse_perm_rcb_, partition_sizes_rcb_,
+                                                                                      A_local_diagblks_v_);
 #else
             KokkosSparse::Impl::kk_extract_diagonal_blocks_crsmatrix_with_rcb_sequential(lclMtx, coors_rcb_,
                                                                                          A_local_diagblks_v_, perm_rcb_);
@@ -1172,8 +1172,8 @@ void RILUK<MatrixType>::compute() {
 #endif
       } else {
 #if KOKKOS_VERSION >= 50100
-        KokkosSparse::Experimental::kk_extract_diagonal_blocks_crsmatrix_with_rcb_sequential(lclMtx, perm_rcb_, reverse_perm_rcb_, partition_sizes_rcb_,
-                                                                                             A_local_diagblks_v_);
+        KokkosSparse::Experimental::kk_extract_diagonal_blocks_crsmatrix_with_rcb(lclMtx, perm_rcb_, reverse_perm_rcb_, partition_sizes_rcb_,
+                                                                                  A_local_diagblks_v_);
 #else
         auto A_coordinates_lcl = A_coordinates_->getLocalViewDevice(Tpetra::Access::ReadOnly);
         Kokkos::deep_copy(coors_rcb_, A_coordinates_lcl);
