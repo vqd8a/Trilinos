@@ -1,2 +1,2 @@
 GitPython==3.2.1
-PyGitHub==2.9.1
+PyGitHub==2.10.0
